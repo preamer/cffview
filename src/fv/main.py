@@ -111,8 +111,8 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
         data['solver']['energy'] = "true" if kvs['rf-energy?'] == "#t" else "false"
         data['solver']['radiation'] = "false"
         for key in ['sg-rosseland?', 'sg-p1?', 'sg-dtrm?', 'sg-s2s?', 'sg-disco?']:
-            if kvs[key] == "#t":
-                data['solver']['solver_model'] = key[3:-1]
+            if kvs[key] != "#f":
+                data['solver']['radiation'] = key[3:-1]
                 break
 
         gravity = re.search(
