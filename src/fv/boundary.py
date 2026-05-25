@@ -86,6 +86,12 @@ class PorousJump:
     c2: str = ""
 
 
+@dataclass
+class NotImplementedBoundary:
+    name: str
+    id: str
+
+
 class BoundaryFactory:
     @staticmethod
     def create(name: str, id: str, type_: str):
@@ -109,4 +115,4 @@ class BoundaryFactory:
             case "porous-jump":
                 return PorousJump(name, id)
             case _:
-                return None
+                return NotImplementedBoundary(name, id)
