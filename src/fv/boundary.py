@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class Fluid:
     name: str
-    id: str
+    id_: str
     material: str = ""
     sources: str = ""
 
@@ -12,7 +12,7 @@ class Fluid:
 @dataclass
 class Solid:
     name: str
-    id: str
+    id_: str
     material: str = ""
     sources: str = ""
 
@@ -20,7 +20,7 @@ class Solid:
 @dataclass
 class VelocityInlet:
     name: str
-    id: str
+    id_: str
     vmag: str = ""
     t: str = ""
     turb_intensity: str = ""
@@ -31,7 +31,7 @@ class VelocityInlet:
 @dataclass
 class MassFlowInlet:
     name: str
-    id: str
+    id_: str
     mass_flow: str = ""
     t: str = ""
     turb_intensity: str = ""
@@ -42,7 +42,7 @@ class MassFlowInlet:
 @dataclass
 class MassFlowOutlet:
     name: str
-    id: str
+    id_: str
     mass_flow: str = ""
     t: str = ""
     turb_intensity: str = ""
@@ -53,7 +53,7 @@ class MassFlowOutlet:
 @dataclass
 class PressureOutlet:
     name: str
-    id: str
+    id_: str
     p: str = ""
     t: str = ""
     turb_intensity: str = ""
@@ -64,7 +64,7 @@ class PressureOutlet:
 @dataclass
 class Wall:
     name: str
-    id: str
+    id_: str
     material: str = ""
     t: str = ""
     q: str = ""
@@ -74,13 +74,13 @@ class Wall:
 @dataclass
 class Interior:
     name: str
-    id: str
+    id_: str
 
 
 @dataclass
 class PorousJump:
     name: str
-    id: str
+    id_: str
     alpha: str = ""
     dm: str = ""
     c2: str = ""
@@ -89,30 +89,30 @@ class PorousJump:
 @dataclass
 class NotImplementedBoundary:
     name: str
-    id: str
+    id_: str
 
 
 class BoundaryFactory:
     @staticmethod
-    def create(name: str, id: str, type_: str):
+    def create(name: str, id_: str, type_: str):
         match type_:
             case "fluid":
-                return Fluid(name, id)
+                return Fluid(name, id_)
             case "solid":
-                return Solid(name, id)
+                return Solid(name, id_)
             case "velocity-inlet":
-                return VelocityInlet(name, id)
+                return VelocityInlet(name, id_)
             case "mass-flow-inlet":
-                return MassFlowInlet(name, id)
+                return MassFlowInlet(name, id_)
             case "mass-flow-outlet":
-                return MassFlowOutlet(name, id)
+                return MassFlowOutlet(name, id_)
             case "pressure-outlet":
-                return PressureOutlet(name, id)
+                return PressureOutlet(name, id_)
             case "wall":
-                return Wall(name, id)
+                return Wall(name, id_)
             case "interior":
-                return Interior(name, id)
+                return Interior(name, id_)
             case "porous-jump":
-                return PorousJump(name, id)
+                return PorousJump(name, id_)
             case _:
-                return NotImplementedBoundary(name, id)
+                return NotImplementedBoundary(name, id_)
