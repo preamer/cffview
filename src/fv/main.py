@@ -243,8 +243,27 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                 for property_ in plotset
                 if str(property_[0]) not in ['old-props', 'report-defs']
             }
-            plotset_dict['report-defs'] = str(plotset[6][1])
+            plotset_dict['report-defs'] = plotset[6][1:]
             data['plotsets'][plotset_dict['name']] = plotset_dict
+
+    if kwargs['monitorsets']:
+        import sexpdata
+
+        data['monitorsets'] = {}
+        monitorsets = re.search(
+            r'(\(monitor/monitorsets.*)',
+            general_info,
+            re.M
+        ).group(1)
+        monitorsets: list = sexpdata.loads(monitorsets, true=None)[1]
+        for monitorset in monitorsets:
+            monitorset_dict = {
+                str(property_[0]): str(property_[2])
+                for property_ in monitorset
+                if str(property_[0]) not in ['old-props', 'report-defs']
+            }
+            monitorset_dict['report-defs'] = monitorset[-4][1:]
+            data['monitorsets'][monitorset_dict['name']] = monitorset_dict
 
     if kwargs['iter']:
         data['iter'] = {}
@@ -368,6 +387,11 @@ def main():
         help="show report-definations plotsets settings"
     )
     parser.add_argument(
+        "--monitorsets",
+        action="store_true",
+        help="show report-definations monitorsets settings"
+    )
+    parser.add_argument(
         "--iter",
         action="store_true",
         help="show iteration settings"
@@ -407,6 +431,7 @@ def main():
                 'ur': args.ur,
                 'rd': args.rd,
                 'plotsets': args.plotsets,
+                'monitorsets': args.monitorsets,
                 'iter': args.iter
             }
             print(read_case(args.file_path, **kwargs))
