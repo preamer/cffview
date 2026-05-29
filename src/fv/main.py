@@ -34,12 +34,12 @@ def change_version(file_path: str, to: str) -> None:
 
 
 def read_case(file_path: str, **kwargs) -> dict[str]:
-    """Read the case file
+    """Read the cas.h5 file
 
     Parameters
     ---------
     file_path : str
-        Path to the .h5 file
+        Path to the cas.h5 file
 
     Returns
     -------
@@ -302,9 +302,13 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
     return data
 
 
-def extract_h5(file_path: str):
-    """ 
+def extract_h5(file_path: str) -> None:
+    """Extract cas.h5 general and boundary string to files
 
+    Parameters
+    ---------
+    file_path : str
+        Path to the cas.h5 file
     """
     import h5py
     with h5py.File(file_path, "r") as f:
@@ -317,10 +321,10 @@ def extract_h5(file_path: str):
         f.write(boundary_info)
 
 
-def main():
+def main() -> None:
     import argparse
 
-    desc = "A python CLI tool to handle Ansys Fluent .h5 file"
+    desc = "A Python CLI tool to handle Ansys Fluent .h5 file"
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument(
