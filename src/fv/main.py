@@ -336,7 +336,7 @@ def main() -> None:
     parser.add_argument(
         "--extract",
         action="store_true",
-        help="extract h5 string to file"
+        help="extract cas.h5 general and boundary string to files"
     )
 
     parser.add_argument(
@@ -381,19 +381,19 @@ def main() -> None:
         help="show ur-factor settings"
     )
     parser.add_argument(
-        "--rd", "--report-definations",
+        "--rd", "--report-definitions",
         action="store_true",
-        help="show report-definations settings"
+        help="show report-definitions settings"
     )
     parser.add_argument(
         "--plotsets",
         action="store_true",
-        help="show report-definations plotsets settings"
+        help="show report-definitions plotsets settings"
     )
     parser.add_argument(
         "--monitorsets",
         action="store_true",
-        help="show report-definations monitorsets settings"
+        help="show report-definitions monitorsets settings"
     )
     parser.add_argument(
         "--iter",
