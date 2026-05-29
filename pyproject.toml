@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fv"
 version = "0.1.0"
-description = "A python CLI tool to handle Ansys Fluent .h5 file"
+description = "A Python CLI tool to handle Ansys Fluent .h5 file"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
