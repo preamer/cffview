@@ -429,11 +429,17 @@ def main() -> None:
         if args.showmesh:
             import pyvista as pv
             try:
-                pv.plot(pv.read(args.file_path), show_edges=True)
+                pv.plot(
+                    pv.read(args.file_path, progress_bar=True),
+                    show_edges=True,
+                    show_axes=True,
+                    smooth_shading=True,
+                    split_sharp_edges=True,
+                )
             except Exception as e:
                 print(e)
         else:
-            from rich import print
+            from rich import print as rprint
             kwargs = {
                 'solver': args.solver,
                 'mat': args.mat,
@@ -448,7 +454,7 @@ def main() -> None:
             }
 
             output = read_case(args.file_path, **kwargs)
-            print(output)
+            rprint(output)
             if args.save:
                 import json
                 with open(f"{args.file_path}.json", "w", encoding="utf-8") as f:
