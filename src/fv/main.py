@@ -54,6 +54,9 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
         general_info = settings['Rampant Variables'][0].decode()
         boundary_info = settings['Thread Variables'][0].decode()
 
+    if not any(kwargs.values()):
+        kwargs = dict.fromkeys(kwargs.keys(), True)
+
     data = {}
 
     if kwargs['solver']:
@@ -401,6 +404,11 @@ def main() -> None:
         help="show iteration settings"
     )
     parser.add_argument(
+        "--save",
+        action="store_true",
+        help="save output to file"
+    )
+    parser.add_argument(
         "--showmesh",
         action="store_true",
         help="show mesh using pyvista"
@@ -438,4 +446,10 @@ def main() -> None:
                 'monitorsets': args.monitorsets,
                 'iter': args.iter
             }
-            print(read_case(args.file_path, **kwargs))
+
+            output = read_case(args.file_path, **kwargs)
+            print(output)
+            if args.save:
+                import json
+                with open(f"{args.file_path}.json", "w", encoding="utf-8") as f:
+                    json.dump(output, f, ensure_ascii=False, indent=4)
