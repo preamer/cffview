@@ -192,17 +192,28 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
         for eq in ['flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon']:
             data['disc-scheme'][eq] = disc_scheme.get(eq)
 
-    if kwargs['ur']:
-        data['ur-factor'] = {}
-        ur_factor = {
-            ur[0]: ur[1]
-            for ur in re.findall(
-                r'\((.*)/relax\s+([\d.]+)\)',
-                general_info
-            )
-        }
-        for eq in ['flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon']:
-            data['ur-factor'][eq] = ur_factor.get(eq, '')
+        data['relax-factor'] = {}
+        if data['disc-scheme']['flow'] == 'Coupled':
+            for eq in ['pressure', 'mom']:
+                data['relax-factor'][eq] = re.search(
+                    fr'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
+                    general_info
+                ).group(1)
+            for eq in ['temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
+                data['relax-factor'][eq] = re.search(
+                    fr'\({eq}/pseudo-relax\s+([\d.]+)\)',
+                    general_info
+                ).group(1)
+        else:
+            ur_factor = {
+                ur[0]: ur[1]
+                for ur in re.findall(
+                    fr'\((.*)/relax\s+([\d.]+)\)',
+                    general_info
+                )
+            }
+            for eq in ['pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
+                data['relax-factor'][eq] = ur_factor.get(eq, '')
 
     if kwargs['rd']:
         import sexpdata
@@ -376,12 +387,7 @@ def main() -> None:
     parser.add_argument(
         "--disc",
         action="store_true",
-        help="show disc-scheme settings"
-    )
-    parser.add_argument(
-        "--ur",
-        action="store_true",
-        help="show ur-factor settings"
+        help="show disc-scheme and relax-factor settings"
     )
     parser.add_argument(
         "--rd", "--report-definitions",
@@ -446,7 +452,6 @@ def main() -> None:
                 'boundary': args.boundary,
                 'ne': args.ne,
                 'disc': args.disc,
-                'ur': args.ur,
                 'rd': args.rd,
                 'plotsets': args.plotsets,
                 'monitorsets': args.monitorsets,
