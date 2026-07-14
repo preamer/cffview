@@ -159,6 +159,7 @@ public:
       //
     std::string FileName;
     std::string FileType;
+    int Dimension;
 
     struct vtkInternals;
     std::unique_ptr<vtkInternals> HDFImpl;
@@ -175,7 +176,6 @@ public:
     std::vector<Face> Faces;
     std::vector<int> CellZones;
 
-    int GridDimension = 0;
     DataState FileState = DataState::NOT_LOADED;
 
 private:

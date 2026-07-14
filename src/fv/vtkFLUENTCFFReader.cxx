@@ -51,23 +51,47 @@ vtkFLUENTCFFReader::~vtkFLUENTCFFReader() = default;
 
 py::dict vtkFLUENTCFFReader::ReadMeshData(const std::string& filename)
 {
-    if (!this->OpenCaseFile(filename))
-        throw std::runtime_error("failed to open case file");
-
+    bool _{ this->OpenCaseFile(filename) };
+    std::cout << "Opening " << filename << std::endl;
     this->FileName = filename;
     this->ParseCaseFile();
+    std::cout << "Parsing " << filename << std::endl;
     this->CleanCells();
+    std::cout << "Cleaning " << filename << std::endl;
     this->PopulateCellNodes();
+    std::cout << "Populating " << filename << std::endl;
     this->GetNumberOfCellZones();
-
+    std::cout << "Getting " << filename << std::endl;
     std::vector<int> connectivity;
     std::vector<int> cell_types;
     std::vector<int> cell_zones;
 
     for (const auto& cell : this->Cells)
     {
-        connectivity.push_back(static_cast<int>(cell.nodes.size()));
-        connectivity.insert(connectivity.end(), cell.nodes.begin(), cell.nodes.end());
+        if (cell.type == 7)  // Polyhedron
+        {
+            int nfaces = static_cast<int>(cell.nodesOffset.size()) - 1;
+            int total_nodes = static_cast<int>(cell.nodes.size());
+            // face_stream_size = 1(nfaces本身) + nfaces个face_npts + total_nodes个点ID
+            int face_stream_size = 1 + nfaces + total_nodes;
+
+            connectivity.push_back(face_stream_size);  // ← 必须有这个 leading count
+            connectivity.push_back(nfaces);
+            for (int j = 0; j < nfaces; j++)
+            {
+                int face_npts = cell.nodesOffset[j + 1] - cell.nodesOffset[j];
+                connectivity.push_back(face_npts);
+                for (int k = cell.nodesOffset[j]; k < cell.nodesOffset[j + 1]; k++)
+                {
+                    connectivity.push_back(cell.nodes[k]);
+                }
+            }
+        }
+        else
+        {
+            connectivity.push_back(static_cast<int>(cell.nodes.size()));
+            connectivity.insert(connectivity.end(), cell.nodes.begin(), cell.nodes.end());
+        }
         cell_types.push_back(FluentCellTypeToVtk(cell.type));
         cell_zones.push_back(cell.zone);
     }
@@ -215,19 +239,29 @@ void vtkFLUENTCFFReader::GetNumberOfCellZones()
 //------------------------------------------------------------------------------
 void vtkFLUENTCFFReader::ParseCaseFile()
 {
+    this->Dimension = this->GetDimension();
+    std::cout << "Reading " << this->FileName << "..." << std::endl;
     this->GetNodesGlobal();
+    std::cout << "Reading global nodes..." << std::endl;
     this->GetCellsGlobal();
+    std::cout << "Reading global cells..." << std::endl;
     this->GetFacesGlobal();
+    std::cout << "Reading global faces..." << std::endl;
     // .cas is always DP
     // .dat is DP or SP
     this->GetNodes();
+    std::cout << "Reading nodes..." << std::endl;
     this->GetCells();
+    std::cout << "Reading cells..." << std::endl;
     this->GetFaces();
-
+    std::cout << "Reading faces..." << std::endl;
     this->GetCellTree();
+    std::cout << "Reading cell tree..." << std::endl;
     // this->GetCellOverset();
     this->GetFaceTree();
+    std::cout << "Reading face tree..." << std::endl;
     this->GetInterfaceFaceParents();
+    std::cout << "Reading interface face parents..." << std::endl;
     // this->GetNonconformalGridInterfaceFaceInformation();
 }
 
@@ -347,7 +381,6 @@ void vtkFLUENTCFFReader::GetNodes()
     }
     CHECK_HDF(H5Dread(dset, H5T_NATIVE_UINT64, H5S_ALL, H5S_ALL, H5P_DEFAULT, dimension.data()));
     CHECK_HDF(H5Dclose(dset));
-
     for (uint64_t iZone = 0; iZone < nZones; iZone++)
     {
         uint64_t coords_minId, coords_maxId;
@@ -370,7 +403,6 @@ void vtkFLUENTCFFReader::GetNodes()
         {
             throw std::runtime_error("Unable to open HDF group (GetNodes coords).");
         }
-
         attr = H5Aopen(dset_coords, "minId", H5P_DEFAULT);
         if (attr < 0)
         {
@@ -390,7 +422,7 @@ void vtkFLUENTCFFReader::GetNodes()
 
         uint64_t size = lastIndex - firstIndex + 1;
         uint64_t gSize;
-        if (this->GridDimension == 3)
+        if (this->Dimension == 3)
         {
             gSize = size * 3;
         }
@@ -398,19 +430,15 @@ void vtkFLUENTCFFReader::GetNodes()
         {
             gSize = size * 2;
         }
-
         std::vector<double> nodeData(gSize);
-        CHECK_HDF(
-            H5Dread(dset_coords, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, nodeData.data()));
+        CHECK_HDF(H5Dread(dset_coords, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, nodeData.data()));
         CHECK_HDF(H5Dclose(dset_coords));
         CHECK_HDF(H5Gclose(group_coords));
-
         unsigned int requiredSize = lastIndex * 3;
         if (this->Points.size() < requiredSize) {
             this->Points.resize(requiredSize, 0.0);
         }
-
-        if (this->GridDimension == 3)
+        if (this->Dimension == 3)
         {
             for (unsigned int i = firstIndex; i <= lastIndex; i++)
             {
@@ -895,7 +923,7 @@ void vtkFLUENTCFFReader::GetFaces()
     // C0 C1
     // C0 C1 are different in msh and cas files, so we need to swap them in the reader
     // TODO: fix c0 c1 parse in msh files
-    if (this->FileType == "cas")
+    if (this->FileType == "cas" || this->Dimension == 3)
     {
         group = H5Gopen(this->HDFImpl->FluentCaseFile, "/meshes/1/faces/c0", H5P_DEFAULT);
         if (group < 0)
