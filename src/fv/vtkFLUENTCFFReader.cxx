@@ -217,10 +217,10 @@ int vtkFLUENTCFFReader::ParseCaseFile()
         this->GetFaces();
 
         this->GetCellTree();
-        this->GetCellOverset();
+        // this->GetCellOverset();
         this->GetFaceTree();
         this->GetInterfaceFaceParents();
-        this->GetNonconformalGridInterfaceFaceInformation();
+        // this->GetNonconformalGridInterfaceFaceInformation();
     }
     catch (std::runtime_error const& e)
     {

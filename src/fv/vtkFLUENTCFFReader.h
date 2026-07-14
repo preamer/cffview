@@ -103,18 +103,6 @@ public:
     virtual void GetFaces();
 
     /**
-     * Get the periodic shadown faces information
-     * !!! NOT IMPLEMENTED YET !!!
-     */
-    virtual void GetPeriodicShadowFaces();
-
-    /**
-     * Get the overset cells information
-     * !!! NOT IMPLEMENTED YET !!!
-     */
-    virtual void GetCellOverset();
-
-    /**
      * Get the tree (AMR) cell topology
      */
     virtual void GetCellTree();
@@ -128,12 +116,6 @@ public:
      * Get the interface id of parent faces
      */
     virtual void GetInterfaceFaceParents();
-
-    /**
-     * Get the non conformal grid interface information
-     * !!! NOT IMPLEMENTED YET !!!
-     */
-    virtual void GetNonconformalGridInterfaceFaceInformation();
 
     /**
      * Removes unnecessary faces from the cells
@@ -165,16 +147,16 @@ public:
     /**
      * Read and reconstruct data from .dat.h5 file
      */
-    virtual int GetData();
+     // virtual int GetData();
 
-    /**
-     * Pre-read variable name data available for selection
-     */
-    virtual int GetMetaData();
+     /**
+      * Pre-read variable name data available for selection
+      */
+      // virtual int GetMetaData();
 
-    //
-    //  Variables
-    //
+      //
+      //  Variables
+      //
     std::string FileName;
     bool RenameArrays = false;
 
