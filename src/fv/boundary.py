@@ -177,6 +177,8 @@ class BoundaryFactory:
                 return Wall(name, id_)
             case "interior":
                 return Interior(name, id_)
+            case "symmetry":
+                return Symmetry(name, id_)
             case "porous-jump":
                 return PorousJump(name, id_)
             case _:
