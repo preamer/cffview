@@ -158,7 +158,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                     elif isinstance(property_[1], list):
                         setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
 
-            b_list.append(new_boundary.__dict__)
+            b_list.append(new_boundary.to_dict() if hasattr(new_boundary, 'to_dict') else new_boundary.__dict__)
             data['boundary'][type_] = b_list
 
     if kwargs['ne']:
