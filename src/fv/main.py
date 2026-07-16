@@ -281,7 +281,19 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
 
     if kwargs['iter']:
         data['iter'] = {}
-        if data['solver']['time'] == 'steady':
+
+        case_config = re.search(
+            r'^\(case-config.*',
+            general_info,
+            re.M
+        ).group()
+        is_unsteady = re.search(
+            r"\(rp-unsteady\?\s+\.\s+([^()\s]+)\)",
+            case_config
+        ).group(1)
+        solver_time = "transient" if is_unsteady == "#t" else "steady"
+
+        if solver_time == 'steady':
             data['iter']['iterations'] = re.search(
                 r'\(number-of-iterations\s+(\d+)\)',
                 general_info
@@ -338,13 +350,13 @@ def extract_h5(file_path: str) -> None:
 def main() -> None:
     import argparse
 
-    desc = "A Python CLI tool to handle Ansys Fluent .h5 file"
+    desc = "A Python CLI tool to get case settings and display mesh without opening Ansys Fluent"
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument(
         "file_path",
         type=str,
-        help="Path to the .h5 file"
+        help="path to the .h5 file"
     )
 
     parser.add_argument(
@@ -457,9 +469,9 @@ def main() -> None:
                 'monitorsets': args.monitorsets,
                 'iter': args.iter
             }
-
             output = read_case(args.file_path, **kwargs)
             rprint(output)
+
             if args.save:
                 import json
                 with open(f"{args.file_path}.json", "w", encoding="utf-8") as f:
