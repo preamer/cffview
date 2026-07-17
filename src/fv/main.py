@@ -49,7 +49,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
     import re
     import h5py
 
-    with h5py.File(file_path, "r") as f:
+    with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
         general_info = settings['Rampant Variables'][0].decode()
         boundary_info = settings['Thread Variables'][0].decode()
@@ -139,7 +139,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                 elif isinstance(m[1], list):
                     data['materials'][name][str(m[0])] = f'{m[1][0]}/{m[1][2]}'
 
-    if kwargs['boundary']:
+    if kwargs['bd']:
         import sexpdata
         from .boundary import BoundaryFactory
 
@@ -282,16 +282,17 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
     if kwargs['iter']:
         data['iter'] = {}
 
-        case_config = re.search(
-            r'^\(case-config.*',
-            general_info,
-            re.M
-        ).group()
-        is_unsteady = re.search(
-            r"\(rp-unsteady\?\s+\.\s+([^()\s]+)\)",
-            case_config
-        ).group(1)
-        solver_time = "transient" if is_unsteady == "#t" else "steady"
+        if not (solver_time := data.get('solver', {}).get('time', None)):
+            case_config = re.search(
+                r'^\(case-config.*',
+                general_info,
+                re.M
+            ).group()
+            is_unsteady = re.search(
+                r"\(rp-unsteady\?\s+\.\s+([^()\s]+)\)",
+                case_config
+            ).group(1)
+            solver_time = "transient" if is_unsteady == "#t" else "steady"
 
         if solver_time == 'steady':
             data['iter']['iterations'] = re.search(
@@ -308,22 +309,11 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                 general_info
             ).group(1)
             data['iter']['physical-time-step'] = f'{sel}/{expr}'
-            data['iter']['time-steps'] = re.search(
-                r'\(number-of-time-steps\s+(\d+)\)',
-                general_info
-            ).group(1)
-            data['iter']['max-iters-per-step'] = re.search(
-                r'\(max-iterations-per-step\s+(\d+)\)',
-                general_info
-            ).group(1)
-            data['iter']['time-step'] = re.search(
-                r'\(time-step\s+(\d+)\)',
-                general_info
-            ).group(1)
-            data['iter']['flow-time'] = re.search(
-                r'\(flow-time\s+(\d+)\)',
-                general_info
-            ).group(1)
+            for key in ['time-steps', 'max-iters-per-step', 'time-step', 'flow-time']:
+                data['iter'][key] = re.search(
+                    fr'\({key}\s+(\d+)\)',
+                    general_info
+                ).group(1)
 
     return data
 
@@ -337,13 +327,13 @@ def extract_h5(file_path: str) -> None:
         Path to the cas.h5 file
     """
     import h5py
-    with h5py.File(file_path, "r") as f:
+    with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
         general_info = settings['Rampant Variables'][0].decode()
         boundary_info = settings['Thread Variables'][0].decode()
-    with open('general.scm', 'w') as f:
+    with open('general.scm', 'w', encoding='utf-8') as f:
         f.write(general_info)
-    with open('boundary.scm', 'w') as f:
+    with open('boundary.scm', 'w', encoding='utf-8') as f:
         f.write(boundary_info)
 
 
@@ -387,7 +377,7 @@ def main() -> None:
         help="show materials settings"
     )
     parser.add_argument(
-        "--boundary",
+        "--bd", "--boundary",
         action="store_true",
         help="show boundary settings"
     )
@@ -461,7 +451,7 @@ def main() -> None:
             kwargs = {
                 'solver': args.solver,
                 'mat': args.mat,
-                'boundary': args.boundary,
+                'bd': args.bd,
                 'ne': args.ne,
                 'disc': args.disc,
                 'rd': args.rd,
