@@ -1,4 +1,41 @@
-// A modified version of the original vtkFLUENTCFFReader.h
+// A modified version of original vtkFLUENTCFFReader.h
+//
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Modifications copyright (c) preamer
+
+/**
+ * @class   vtkFLUENTCFFReader
+ * @brief   reads a dataset in Fluent CFF file format
+ *
+ * vtkFLUENTCFFReader creates a multiblock dataset containing for each group cell
+ * an unstructured grid dataset. It reads .cas.h5 and .dat.h5 files stored in FLUENT
+ * CFF format (hdf5).
+ *
+ * The name of the arrays can be renamed with a more meaningful name that correspond to what Fluent
+ * displays. The details for these renamings can be found here:
+ * https://ansyshelp.ansys.com/public/account/secured?returnurl=/Views/Secured/corp/v242/en/flu_udf/flu_udf_DataAccessMacros.html
+ * https://developer.ansys.com/docs/common-fluids-format-/_data_models_overview.html
+ *
+ * @par Thanks:
+ * Original author : Arthur Piquet
+ *
+ * This class is based on the vtkFLUENTReader class from Brian W. Dotson &
+ * Terry E. Jordan (Department of Energy, National Energy Technology
+ * Laboratory) & Douglas McCorkle (Iowa State University)
+ *
+ * This class reads the HDF5 data in Fluent Format (face type structure)
+ * and converts it to VTK Format (cell type structure).
+ * This class could be improved for memory performance but the developer
+ * will need to rewrite entirely the structure of the class.
+ * Some piece of functionality lack in the HDF reading (overset, AMR tree,
+ * interface), no file available in order to code/test the structure.
+ *
+ *
+ * @sa
+ * vtkFLUENTReader
+ */
 
 #pragma once
 

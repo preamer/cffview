@@ -7,6 +7,7 @@ name = "fv"
 version = "0.1.0"
 description = "A Python CLI tool to get case settings and display mesh without opening Ansys Fluent"
 readme = "README.md"
+license = { text = "BSD-3-Clause" }
 requires-python = ">=3.11"
 dependencies = [
     "h5py>=3.16.0",

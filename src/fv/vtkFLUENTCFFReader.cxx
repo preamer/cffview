@@ -1,4 +1,15 @@
-// A modified version of the original vtkFLUENTCFFReader.cxx
+// A modified version of original vtkFLUENTCFFReader.cxx
+//
+// SPDX-FileCopyrightText: Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+// SPDX-License-Identifier: BSD-3-Clause
+// This file reads the Fluent Common Fluid Format. It uses the HDF5 library
+// Original author : Arthur Piquet
+//
+// This class is based on the vtkFLUENTReader class from Brian W. Dotson &
+// Terry E. Jordan (Department of Energy, National Energy Technology
+// Laboratory) & Douglas McCorkle (Iowa State University)
+//
+// Modifications copyright (c) preamer
 
 #include "vtkFLUENTCFFReader.h"
 #include "pybind11/pybind11.h"
