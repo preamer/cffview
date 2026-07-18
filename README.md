@@ -41,7 +41,6 @@ fv <file> [options]
 | Option | Description |
 |---|---|
 | `-v`, `--version` | Print the Fluent version stored in the file |
-| `-t <ver>`, `--to <ver>` | Overwrite the stored version string, e.g. `25.2` |
 | `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
 | `--showmesh` | Visualise the mesh interactively with PyVista |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
@@ -73,9 +72,6 @@ fv mesh.msh.h5 --showmesh
 # Check the Fluent version embedded in the file
 fv case.cas.h5 --version
 
-# Patch the version (useful for cross-version compatibility)
-fv case.cas.h5 --to 25.2
-
 # Extract raw Scheme strings for manual inspection
 fv case.cas.h5 --extract
 ```
@@ -98,7 +94,7 @@ fv case.cas.h5 --extract
 
 | Flag | Contents |
 |---|---|
-| `--solver` | Algorithm (PBNS/DBNS), steady/transient, 2D/3D, single/double precision, turbulence model (laminar · k-ε · k-ω · SA · RSM · LES · DES …), energy, radiation, gravity |
+| `--solver` | Algorithm (PBNS/DBNS), steady/transient, 2D/3D, single/double precision, turbulence model, energy, radiation, gravity |
 | `--mat` | Fluid/solid materials with properties and evaluation methods |
 | `--bd` | Velocity-inlet, pressure-outlet, mass-flow-inlet/outlet, wall (thermal & motion BC), porous-jump, interior, symmetry, … |
 | `--ne` | Named expressions defined in the case |

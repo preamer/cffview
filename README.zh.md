@@ -41,7 +41,6 @@ fv <文件> [选项]
 | 选项 | 说明 |
 |---|---|
 | `-v`, `--version` | 打印文件中存储的 Fluent 版本号 |
-| `-t <版本>`, `--to <版本>` | 修改文件中存储的版本号，例如 `25.2` |
 | `--extract` | 将原始 Scheme 设置导出到 `general.scm` 和 `boundary.scm` |
 | `--showmesh` | 使用 PyVista 交互式显示网格 |
 | `--solver` | 求解器类型、时间类型、维度、精度、湍流模型、能量方程、辐射模型、重力 |
@@ -73,9 +72,6 @@ fv mesh.msh.h5 --showmesh
 # 查看文件中存储的 Fluent 版本
 fv case.cas.h5 --version
 
-# 修改版本号（用于跨版本兼容）
-fv case.cas.h5 --to 25.2
-
 # 导出原始 Scheme 字符串以便手动查看
 fv case.cas.h5 --extract
 ```
@@ -98,7 +94,7 @@ fv case.cas.h5 --extract
 
 | 选项 | 内容 |
 |---|---|
-| `--solver` | 算法（PBNS/DBNS）、稳态/瞬态、2D/3D、单/双精度、湍流模型（层流 · k-ε · k-ω · SA · RSM · LES · DES …）、能量方程、辐射模型、重力 |
+| `--solver` | 算法（PBNS/DBNS）、稳态/瞬态、2D/3D、单/双精度、湍流模型、能量方程、辐射模型、重力 |
 | `--mat` | 流体/固体材料的属性及其求值方式 |
 | `--bd` | 速度入口、压力出口、质量流量入口/出口、壁面（热边界条件和运动边界条件）、多孔跳跃、内部、对称面等 |
 | `--ne` | 算例中定义的命名表达式 |

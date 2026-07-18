@@ -17,22 +17,6 @@ def print_version(file_path: str) -> str:
         print(f['/settings/Version'][0].decode())
 
 
-def change_version(file_path: str, to: str) -> None:
-    """Change the version of the .h5 file
-
-    Parameters
-    ---------
-    file_path : str
-        Path to the .h5 file
-    to : str
-        Version to change to
-    """
-    import h5py
-
-    with h5py.File(file_path, "r+") as f:
-        f['/settings/Version'][0] = to
-
-
 def read_case(file_path: str, **kwargs) -> dict[str]:
     """Read the cas.h5 file
 
@@ -190,7 +174,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
     if kwargs['ne']:
         import sexpdata
 
-        data['ne'] = {}
+        data['named-expressions'] = {}
         nes = re.search(
             r'(\(named-expressions.*)',
             general_info,
@@ -202,7 +186,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                 str(property_[0]): str(property_[2])
                 for property_ in ne
             }
-            data['ne'][ne_dict['name']] = ne_dict
+            data['named-expressions'][ne_dict['name']] = ne_dict
 
     if kwargs['disc']:
         from .utils import FLUENT_ENUM
@@ -231,7 +215,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                     general_info
                 ).group(1)
         else:
-            ur_factor = {
+            relax_factor = {
                 ur[0]: ur[1]
                 for ur in re.findall(
                     fr'\((.*)/relax\s+([\d.]+)\)',
@@ -239,7 +223,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
                 )
             }
             for eq in ['pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
-                data['relax-factor'][eq] = ur_factor.get(eq, '')
+                data['relax-factor'][eq] = relax_factor.get(eq, '')
 
     if kwargs['rd']:
         import sexpdata
@@ -451,10 +435,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.version:
-        if args.to:
-            change_version(args.file_path, args.to)
-        else:
-            print_version(args.file_path)
+        print_version(args.file_path)
     elif args.extract:
         extract_h5(args.file_path)
     elif args.file_path.endswith(".msh.h5"):
