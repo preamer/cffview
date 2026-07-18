@@ -133,11 +133,15 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
             data['materials'][name] = {}
             data['materials'][name]['type'] = str(material[1])
             for i in range(2, len(material)):
-                m = material[i]
-                if m[1] == sexpdata.Symbol('.'):
-                    data['materials'][name][str(m[0])] = str(m[2])
-                elif isinstance(m[1], list):
-                    data['materials'][name][str(m[0])] = f'{m[1][0]}/{m[1][2]}'
+                property_ = material[i]
+                if property_[1] == sexpdata.Symbol('.'):
+                    data['materials'][name][str(property_[0])] = str(property_[2])
+                elif isinstance(p1 := property_[1], list):
+                    if p1[1] == sexpdata.Symbol('.'):
+                        data['materials'][name][str(property_[0])] = f'{p1[0]}/{p1[2]}'
+                    else:
+                        value = ' '.join(str(p) for p in p1[1:])
+                        data['materials'][name][str(property_[0])] = f'{p1[0]}/{value}'
 
     if kwargs['bd']:
         import sexpdata
