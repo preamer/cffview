@@ -14,15 +14,15 @@ cd ".\hdf5_src\hdf5-$ver"
 
 cmake `
   -B build `
-  -G "Visual Studio 17 2022" `
-  -A x64 `
+  -G "Ninja" `
+  -DCMAKE_BUILD_TYPE=Release `
   -DCMAKE_INSTALL_PREFIX="$installDir" `
   -DBUILD_SHARED_LIBS=ON `
   -DHDF5_BUILD_CPP_LIB=OFF `
   -DHDF5_BUILD_TOOLS=OFF `
   -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build --config Release
-cmake --install build --config Release
+cmake --build build
+cmake --install build
 
 Write-Host "HDF5 successfully installed to: $installDir"
