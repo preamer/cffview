@@ -24,14 +24,20 @@ jobs:
           path: C:/vcpkg/installed
           key: vcpkg-hdf5-${{ runner.os }}-${{ hashFiles('**/pyproject.toml') }}
 
-      - name: Set up QEMU (Linux aarch64 cross-complile)
+      - name: Set up QEMU (Linux aarch64 cross-compile)
         if: runner.os == 'Linux'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
+      - name: Fix script permissions
+        if: runner.os != 'Windows'
+        run: chmod +x tools/build_hdf5_linux.sh tools/build_hdf5_macos.sh
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_ENVIRONMENT_MACOS: "HDF5_DIR='/opt/hdf5' MACOSX_DEPLOYMENT_TARGET='11.0' DYLD_LIBRARY_PATH='/opt/hdf5/lib:$DYLD_LIBRARY_PATH'"
 
       - uses: actions/upload-artifact@v4
         with:
