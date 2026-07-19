@@ -28,7 +28,7 @@ cmake `
 cmake --build build --parallel $Cores
 cmake --install build
 
-if (!(Test-Path "$installDir\lib\libhdf5.dll.a")) {
-    Write-Error "libhdf5.dll.a not found in $installDir\lib"
+if (!(Test-Path "$installDir\lib\hdf5.lib") -and !(Test-Path "$installDir\lib\libhdf5.lib")) {
+    Write-Error "HDF5 import library (.lib) not found in $installDir\lib"
     exit 1
 }

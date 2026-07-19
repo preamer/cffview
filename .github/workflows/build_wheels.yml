@@ -27,6 +27,10 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x tools/build_hdf5_linux.sh tools/build_hdf5_macos.sh
 
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.1.0
 
