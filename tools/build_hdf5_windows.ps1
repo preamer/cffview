@@ -25,8 +25,7 @@ cmake `
 cmake --build build
 cmake --install build
 
-if (!(Test-Path "$installDir\lib\hdf5.lib")) {
-    Write-Error "hdf5.lib not found in $installDir\lib"
+if (!(Test-Path "$installDir\lib\libhdf5.lib")) {
+    Write-Error "libhdf5.lib not found in $installDir\lib"
     exit 1
 }
-
