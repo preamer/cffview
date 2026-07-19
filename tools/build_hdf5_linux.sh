@@ -23,5 +23,5 @@ cmake \
 -DHDF5_BUILD_TOOLS=OFF \
 -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build -j2
+cmake --build build -j4
 cmake --install build

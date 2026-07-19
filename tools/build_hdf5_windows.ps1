@@ -22,7 +22,7 @@ cmake `
   -DHDF5_BUILD_TOOLS=OFF `
   -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build
+cmake --build build -j4
 cmake --install build
 
 if (!(Test-Path "$installDir\lib\libhdf5.lib")) {
