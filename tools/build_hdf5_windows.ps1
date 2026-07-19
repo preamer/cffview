@@ -19,6 +19,8 @@ cmake `
   -B build `
   -G "Ninja" `
   -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_C_COMPILER="cl" `
+  -DCMAKE_CXX_COMPILER="cl" `
   -DCMAKE_INSTALL_PREFIX="$installDir" `
   -DBUILD_SHARED_LIBS=ON `
   -DHDF5_BUILD_CPP_LIB=OFF `
