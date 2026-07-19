@@ -12,6 +12,9 @@ Expand-Archive hdf5.zip -DestinationPath ".\hdf5_src"
 
 cd ".\hdf5_src\hdf5-$ver"
 
+$Cores = $env:NUMBER_OF_PROCESSORS
+if (-not $Cores) { $Cores = 2 }
+
 cmake `
   -B build `
   -G "Ninja" `
@@ -22,10 +25,10 @@ cmake `
   -DHDF5_BUILD_TOOLS=OFF `
   -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build -j4
+cmake --build build --parallel $Cores
 cmake --install build
 
-if (!(Test-Path "$installDir\lib\libhdf5.lib")) {
-    Write-Error "libhdf5.lib not found in $installDir\lib"
+if (!(Test-Path "$installDir\lib\libhdf5.dll.a")) {
+    Write-Error "libhdf5.dll.a not found in $installDir\lib"
     exit 1
 }

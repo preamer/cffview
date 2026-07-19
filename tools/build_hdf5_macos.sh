@@ -21,6 +21,14 @@ cd hdf5-${HDF5_VER}
 
 rm -rf build
 
+if command -v nproc &> /dev/null; then
+    CORES=$(nproc)
+elif command -v sysctl &> /dev/null; then
+    CORES=$(sysctl -n hw.ncpu)
+else
+    CORES=2
+fi
+
 cmake \
 -B build \
 ${CMAKE_ARCH:+-DCMAKE_OSX_ARCHITECTURES=$CMAKE_ARCH} \
@@ -32,5 +40,5 @@ ${CMAKE_ARCH:+-DCMAKE_OSX_ARCHITECTURES=$CMAKE_ARCH} \
 -DHDF5_BUILD_TOOLS=OFF \
 -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build -j4
+cmake --build build --parallel "$CORES"
 cmake --install build

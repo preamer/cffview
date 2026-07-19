@@ -14,6 +14,14 @@ cd hdf5-${HDF5_VER}
 
 mkdir -p /opt/hdf5
 
+if command -v nproc &> /dev/null; then
+    CORES=$(nproc)
+elif command -v sysctl &> /dev/null; then
+    CORES=$(sysctl -n hw.ncpu)
+else
+    CORES=2
+fi
+
 cmake \
 -B build \
 -DCMAKE_BUILD_TYPE=Release \
@@ -23,5 +31,5 @@ cmake \
 -DHDF5_BUILD_TOOLS=OFF \
 -DHDF5_BUILD_EXAMPLES=OFF
 
-cmake --build build -j4
+cmake --build build --parallel "$CORES"
 cmake --install build
