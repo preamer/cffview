@@ -45,19 +45,19 @@ skip = "*-musllinux*"
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-before-all = "dnf install -y epel-release && dnf install -y hdf5-devel pkgconf-pkg-config"
+before-all = "yum install -y hdf5-devel pkgconfig"
 environment = { HDF5_DIR = "/usr" }
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
 before-all = "brew install hdf5"
-environment = { HDF5_DIR = "/opt/homebrew/opt/hdf5:/usr/local/opt/hdf5" }
-before-build = "export HDF5_DIR=$(brew --prefix hdf5)"
+before-build = "export HDF5_DIR=$(brew --prefix hdf5) && export DYLD_LIBRARY_PATH=$(brew --prefix hdf5)/lib:$DYLD_LIBRARY_PATH"
+environment = { HDF5_DIR = "/opt/homebrew/opt/hdf5:/usr/local/opt/hdf5", DYLD_LIBRARY_PATH = "/opt/homebrew/lib:/usr/local/lib" }
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
 
 [tool.cibuildwheel.windows]
-before-all = "vcpkg install hdf5:x64-windows"
+before-all = "C:/vcpkg/vcpkg.exe install hdf5:x64-windows"
 before-build = "pip install delvewheel"
 environment = { HDF5_DIR = "C:/vcpkg/installed/x64-windows" }
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
