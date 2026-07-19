@@ -11,8 +11,6 @@ wheels/
 
 FLUENTCFF/
 
-example/
-
 # test files
 *.msh.h5
 *.cas.h5

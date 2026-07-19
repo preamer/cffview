@@ -219,10 +219,10 @@ hdf5_inc, hdf5_lib, hdf5_libs, macros, link_args = find_hdf5()
 
 ext_modules = [
     Pybind11Extension(
-        "fv.mesh_reader",
+        "cffview.mesh_reader",
         sources=[
-            "src/fv/main.cxx",
-            "src/fv/vtkFLUENTCFFReader.cxx",
+            "src/cffview/main.cxx",
+            "src/cffview/vtkFLUENTCFFReader.cxx",
         ],
         include_dirs=[
             *hdf5_inc,
