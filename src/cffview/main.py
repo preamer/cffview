@@ -347,10 +347,74 @@ def extract_h5(file_path: str) -> None:
         f.write(boundary_info)
 
 
+def show_mesh(file_path: str) -> None:
+    """Show mesh with PyVista
+
+    Parameters
+    ---------
+    file_path : str
+        Path to the .h5 file
+    """
+    import pyvista as pv
+    if file_path.endswith('cas.h5'):
+        pv.plot(
+            pv.read(file_path, progress_bar=True),
+            show_edges=True,
+            show_axes=True,
+            smooth_shading=True,
+            split_sharp_edges=True,
+        )
+    elif file_path.endswith('msh.h5'):
+        import numpy as np
+        from h5py import File, Group, Dataset
+
+        with File(file_path) as f:
+            root_group: Group = f['/meshes/1']
+            dimension: np.int32 = root_group.attrs['dimension'][0]
+            nodeCount: np.uint64 = root_group.attrs['nodeCount'][0]
+            faceCount: np.uint64 = root_group.attrs['faceCount'][0]
+            pv_points = np.zeros((nodeCount, 3), dtype=np.float64)
+            nnodes = np.zeros(faceCount, dtype=np.int16)
+            zoneTopology: Group = root_group['nodes/zoneTopology']
+            nZones: np.uint64 = zoneTopology.attrs['nZones'][0]
+            minId: Dataset = zoneTopology['minId']
+            maxId: Dataset = zoneTopology['maxId']
+
+            coords_group: Group = root_group['nodes/coords']
+            for i in range(nZones):
+                pv_points[minId[i] - 1: maxId[i], :dimension] = coords_group[f'{i+1}'][:]
+
+            zoneTopology: Group = root_group['faces/zoneTopology']
+            minId: Dataset = zoneTopology['minId']
+            maxId: Dataset = zoneTopology['maxId']
+
+            faces_nodes_group: Group = root_group['faces/nodes']
+            nSections: np.uint64 = faces_nodes_group.attrs['nSections'][0]
+            for i in range(nSections):
+                section_group: Group = faces_nodes_group[f"{i+1}"]
+                nnodes[minId[i] - 1: maxId[i]] = section_group['nnodes'][:]
+            nodes_count = np.sum(nnodes)
+            nodes = np.zeros(nodes_count, dtype=np.uint32)
+            nodes_start_index = 0
+            for i in range(nSections):
+                section_group: Group = faces_nodes_group[f"{i+1}"]
+                nodes_num = section_group['nodes'].size
+                nodes[nodes_start_index: nodes_start_index + nodes_num] = section_group['nodes'][:] - 1
+                nodes_start_index += nodes_num
+            offsets = np.cumsum(nnodes) - nnodes
+            pv_faces = np.insert(nodes, offsets, nnodes)
+
+        mesh = pv.PolyData(pv_points, pv_faces)
+        plotter = pv.Plotter()
+        plotter.add_mesh(mesh, show_edges=True, color='cyan', line_width=2, smooth_shading=True, split_sharp_edges=True)
+        plotter.add_axes()
+        plotter.show()
+
+
 def main() -> None:
     import argparse
 
-    desc = "A Python CLI tool to get case settings and display mesh without opening Ansys Fluent"
+    desc = "A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening Fluent"
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument(
@@ -434,20 +498,10 @@ def main() -> None:
     elif args.extract:
         extract_h5(args.file_path)
     elif args.file_path.endswith(".msh.h5"):
-        ...
+        show_mesh(args.file_path)
     elif args.file_path.endswith(".cas.h5"):
         if args.showmesh:
-            import pyvista as pv
-            try:
-                pv.plot(
-                    pv.read(args.file_path, progress_bar=True),
-                    show_edges=True,
-                    show_axes=True,
-                    smooth_shading=True,
-                    split_sharp_edges=True,
-                )
-            except Exception as e:
-                print(e)
+            show_mesh(args.file_path)
         else:
             from .utils import print_colored_dict
             kwargs = {
