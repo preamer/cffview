@@ -1,8 +1,6 @@
-[English](README.md)
-
 # cffview
 
-一个用于检查 Ansys Fluent `.cas.h5` / `.msh.h5` 文件的命令行工具，**无需打开 Fluent**。
+一个用于查看 Ansys Fluent `.cas.h5` / `.msh.h5` 文件的命令行工具，**无需打开 Fluent**。
 
 - 直接从 HDF5 文件中读取求解器设置、材料、边界条件、离散格式等信息。
 - 使用 [PyVista](https://pyvista.org) 可视化网格。
@@ -11,11 +9,13 @@
 
 ## 安装
 
+### PyPI
+
 ```bash
 pip install cffview
 ```
 
-### 从源码编译
+### 源码
 
 ```bash
 git clone https://github.com/preamer/cffview.git
@@ -47,6 +47,8 @@ cffview <文件> [选项]
 | `--plotsets` | 图表集配置 |
 | `--monitorsets` | 监控集配置 |
 | `--iter` | 迭代步数 / 时间步设置 |
+| `--contours` | 后处理云图配置 |
+| `--vectors` | 后处理矢量图配置 |
 | `--save` | 将输出保存为 `<文件>.json` |
 
 多个选项可以自由组合。算例设置类选项（`--solver`、`--mat` 等）仅适用于 `.cas.h5` 文件。
@@ -70,32 +72,6 @@ cffview case.cas.h5 --version
 # 导出原始 Scheme 字符串以便手动查看
 cffview case.cas.h5 --extract
 ```
-
----
-
-## 文件格式支持
-
-| 功能 | `.cas.h5` | `.msh.h5` |
-|---|---|---|
-| 算例设置（`--solver`、`--mat`、`--bd` 等） | ✅ | — |
-| 网格可视化（3D） | ✅ | ✅ |
-| 网格可视化（2D） | ✅ | ✅ |
-
----
-
-## 支持的设置项
-
-| 选项 | 内容 |
-|---|---|
-| `--solver` | 算法（PBNS/DBNS）、稳态/瞬态、2D/3D、单/双精度、湍流模型、能量方程、辐射模型、重力 |
-| `--mat` | 流体/固体材料的属性及其求值方式 |
-| `--bd` | 速度入口、压力出口、质量流量入口/出口、壁面（热边界条件和运动边界条件）、多孔跳跃、内部、对称面等 |
-| `--ne` | 算例中定义的命名表达式 |
-| `--disc` | 各方程的离散格式（二阶迎风、QUICK 等）及松弛因子/伪瞬态因子 |
-| `--rd` | 报告定义（体积、面、通量类），包含物理量、区域及分区域标志 |
-| `--plotsets` | 图表集配置 |
-| `--monitorsets` | 监控集配置 |
-| `--iter` | 迭代次数（稳态）或时间步长、时间步数、每步最大迭代次数（瞬态）|
 
 ---
 

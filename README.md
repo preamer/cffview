@@ -15,11 +15,13 @@ A command-line tool for inspecting Ansys Fluent `.cas.h5` / `.msh.h5` files **wi
 
 ## Installation
 
+### PyPI
+
 ```bash
 pip install cffview
 ```
 
-### Build from source
+### From source
 
 ```bash
 git clone https://github.com/preamer/cffview.git
@@ -51,6 +53,8 @@ cffview <file> [options]
 | `--plotsets` | Plot sets |
 | `--monitorsets` | Monitor sets |
 | `--iter` | Iteration / time-step settings |
+| `--contours` | Graphics contours settings |
+| `--vectors` | Graphics vectors settings |
 | `--save` | Save the output to `<file>.json` |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
@@ -74,32 +78,6 @@ cffview case.cas.h5 --version
 # Extract raw Scheme strings for manual inspection
 cffview case.cas.h5 --extract
 ```
-
----
-
-## File Format Support
-
-| Feature | `.cas.h5` | `.msh.h5` |
-|---|---|---|
-| Case settings (`--solver`, `--mat`, `--bd`, …) | ✅ | — |
-| Mesh visualisation (3D) | ✅ | ✅ |
-| Mesh visualisation (2D) | ✅ | ✅ |
-
----
-
-## Supported Settings
-
-| Flag | Contents |
-|---|---|
-| `--solver` | Algorithm (PBNS/DBNS), steady/transient, 2D/3D, single/double precision, turbulence model, energy, radiation, gravity |
-| `--mat` | Fluid/solid materials with properties and evaluation methods |
-| `--bd` | Velocity-inlet, pressure-outlet, mass-flow-inlet/outlet, wall (thermal & motion BC), porous-jump, interior, symmetry, … |
-| `--ne` | Named expressions defined in the case |
-| `--disc` | Per-equation scheme (Second Order Upwind, QUICK, …) and under-relaxation / pseudo-transient factors |
-| `--rd` | Report definitions (volume, surface, flux) with field, zones, and per-zone flag |
-| `--plotsets` | Plot set configurations |
-| `--monitorsets` | Monitor set configurations |
-| `--iter` | Iteration count (steady) or time-step size, number of steps, max inner iterations (transient) |
 
 ---
 

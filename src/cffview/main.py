@@ -332,6 +332,76 @@ def read_case(file_path: str, **kwargs) -> dict[
                     general_info
                 ).group(1)
 
+    if kwargs['contours']:
+        import sexpdata
+
+        data['contours'] = {}
+        contours = re.search(
+            r'(\(graphics/contours.*)',
+            general_info,
+            re.M
+        ).group(1)
+        contours: list = sexpdata.loads(contours, true=None)[1]
+        for contour in contours:
+            contour_dict = {
+                str(property_[0]): str(property_[2])
+                for property_ in contour
+                if str(property_[0]) not in [
+                    'locations', 'location-ids', 'options',
+                    'range-options', 'range-option', 'surfaces-list',
+                    'color-map', 'colorings', 'annotations-list',
+                ]
+            }
+            contour_dict['surface-list'] = contour[2][1]
+            contour_dict['range-options'] = {
+                str(range_option[0]): str(range_option[2])
+                for range_option in contour[6][1:]
+            }
+            contour_dict['color-map'] = {
+                str(color_map[0]): str(color_map[2])
+                for color_map in contour[-7][1:]
+            }
+            data['contours'][contour_dict['name']] = contour_dict
+
+    if kwargs['vectors']:
+        import sexpdata
+
+        data['vectors'] = {}
+        vectors = re.search(
+            r'(\(graphics/vectors\s.*)',
+            general_info,
+            re.M
+        ).group(1)
+        vectors: list = sexpdata.loads(vectors, true=None)[1]
+        for vector in vectors:
+            vector_dict = {
+                str(property_[0]): str(property_[2])
+                for property_ in vector
+                if str(property_[0]) not in [
+                    'locations', 'location-ids', 'options', 'scale',
+                    'range-options', 'range-option', 'surfaces-list',
+                    'color-map', 'vector-opt', 'annotations-list',
+                ]
+            }
+            vector_dict['surface-list'] = vector[3][1]
+            vector_dict['range-options'] = {
+                str(range_option[0]): str(range_option[2])
+                for range_option in vector[7][1:]
+            }
+            vector_dict['scale'] = {
+                str(scale[0]): str(scale[2])
+                for scale in vector[9][1:]
+            }
+            vector_dict['vector-opt'] = {
+                str(vector_opt[0]): str(vector_opt[2])
+                for vector_opt in vector[-6][1:]
+            }
+            vector_dict['color-map'] = {
+                str(color_map[0]): str(color_map[2])
+                for color_map in vector[-5][1:]
+            }
+            data['vectors'][vector_dict['name']] = vector_dict
+
     return data
 
 
@@ -441,73 +511,26 @@ def main() -> None:
         help="path to the .h5 file"
     )
 
-    parser.add_argument(
-        "--extract",
-        action="store_true",
-        help="extract cas.h5 general and boundary string to files"
-    )
+    ARGUMENTS = [
+        (("--extract",), "extract cas.h5 general and boundary string to files"),
+        (("--version",), "show the version of the .h5 file"),
+        (("--solver",), "show solver settings"),
+        (("--mat", "--materials"), "show materials settings"),
+        (("--bd", "--boundary"), "show boundary settings"),
+        (("--ne", "--named-expressions"), "show named-expressions settings"),
+        (("--disc",), "show disc-scheme and relax-factor settings"),
+        (("--rd", "--report-definitions"), "show report-definitions settings"),
+        (("--plotsets",), "show report-definitions plotsets settings"),
+        (("--monitorsets",), "show report-definitions monitorsets settings"),
+        (("--iter",), "show iteration settings"),
+        (("--contours",), "show graphics contours settings"),
+        (("--vectors",), "show graphics vectors settings"),
+        (("--save",), "save output to file"),
+        (("--showmesh",), "show mesh using pyvista"),
+    ]
 
-    parser.add_argument(
-        "--version",
-        action="store_true",
-        help="show the version of the .h5 file"
-    )
-
-    parser.add_argument(
-        "--solver",
-        action="store_true",
-        help="show solver settings"
-    )
-    parser.add_argument(
-        "--mat", "--materials",
-        action="store_true",
-        help="show materials settings"
-    )
-    parser.add_argument(
-        "--bd", "--boundary",
-        action="store_true",
-        help="show boundary settings"
-    )
-    parser.add_argument(
-        "--ne", "--named-expressions",
-        action="store_true",
-        help="show named-expressions settings"
-    )
-    parser.add_argument(
-        "--disc",
-        action="store_true",
-        help="show disc-scheme and relax-factor settings"
-    )
-    parser.add_argument(
-        "--rd", "--report-definitions",
-        action="store_true",
-        help="show report-definitions settings"
-    )
-    parser.add_argument(
-        "--plotsets",
-        action="store_true",
-        help="show report-definitions plotsets settings"
-    )
-    parser.add_argument(
-        "--monitorsets",
-        action="store_true",
-        help="show report-definitions monitorsets settings"
-    )
-    parser.add_argument(
-        "--iter",
-        action="store_true",
-        help="show iteration settings"
-    )
-    parser.add_argument(
-        "--save",
-        action="store_true",
-        help="save output to file"
-    )
-    parser.add_argument(
-        "--showmesh",
-        action="store_true",
-        help="show mesh using pyvista"
-    )
+    for flags, help_text in ARGUMENTS:
+        parser.add_argument(*flags, action="store_true", help=help_text)
 
     args = parser.parse_args()
 
@@ -531,6 +554,8 @@ def main() -> None:
                 'rd': args.rd,
                 'plotsets': args.plotsets,
                 'monitorsets': args.monitorsets,
+                'contours': args.contours,
+                'vectors': args.vectors,
                 'iter': args.iter
             }
             output = read_case(args.file_path, **kwargs)
