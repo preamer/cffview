@@ -1,3 +1,6 @@
+from typing import Literal
+
+
 def print_version(file_path: str) -> str:
     """Get the version of the .h5 file
 
@@ -17,7 +20,11 @@ def print_version(file_path: str) -> str:
         print(f['/settings/Version'][0].decode())
 
 
-def read_case(file_path: str, **kwargs) -> dict[str]:
+def read_case(file_path: str, **kwargs) -> dict[
+    Literal['solver', 'materials', 'boundary', 'named-expressions',
+            'disc-scheme', 'report-definitions', 'plotsets', 'monitorsets', 'iter'],
+    dict[str]
+]:
     """Read the cas.h5 file
 
     Parameters
@@ -27,7 +34,7 @@ def read_case(file_path: str, **kwargs) -> dict[str]:
 
     Returns
     -------
-    dict[str]
+    dict[Literal[...], dict[str]]
         A dictionary containing the case settings
     """
     import re
@@ -441,7 +448,7 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "-v", "--version",
+        "--version",
         action="store_true",
         help="show the version of the .h5 file"
     )
