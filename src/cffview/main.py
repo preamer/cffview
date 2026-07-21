@@ -438,6 +438,7 @@ def show_mesh(file_path: str) -> None:
             pv.read(file_path),
             show_edges=True,
             show_axes=True,
+            anti_aliasing='ssaa',
             smooth_shading=True,
             split_sharp_edges=True,
         )
@@ -487,13 +488,10 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None
         )
         plotter = pv.Plotter()
+        plotter.enable_anti_aliasing()
         plotter.add_mesh(
             mesh,
             show_edges=True,
-            color='lightblue',
-            line_width=2,
-            smooth_shading=True,
-            split_sharp_edges=True,
         )
         plotter.add_axes()
         plotter.show()
