@@ -90,6 +90,7 @@ def read_case(file_path: str, **kwargs) -> dict[
                 data['solver']['radiation'] = key[3:-1]
                 break
 
+        data['solver']['gravity'] = {}
         gravity = re.search(
             r'\(gravity\?\s+([^)\s]+)\)',
             general_info
@@ -105,7 +106,7 @@ def read_case(file_path: str, **kwargs) -> dict[
                     fr'\(gravity/{axis}-expr\s+"([^"]+)"\)',
                     general_info
                 ).group(1)
-                data['solver'][f'gravity/{axis}'] = f'{sel}/{expr}'
+                data['solver']['gravity'][axis] = f'{sel}/{expr}'
         else:
             data['solver']['gravity'] = "false"
 
@@ -120,6 +121,7 @@ def read_case(file_path: str, **kwargs) -> dict[
         ).group(1)
         if use_operating_density == '#t':
             operating_conditions.append('operating-density')
+        data['solver']['operating-conditions'] = {}
         for condition in operating_conditions:
             sel = re.search(
                 fr'\({condition}-sel\s+"([^"]+)"\)',
@@ -129,7 +131,20 @@ def read_case(file_path: str, **kwargs) -> dict[
                 fr'\({condition}-expr\s+"([^"]+)"\)',
                 general_info
             ).group(1)
-            data['solver'][condition] = f'{sel}/{expr}'
+            data['solver']['operating-conditions'][condition] = f'{sel}/{expr}'
+
+        reference_values = [
+            'area', 'depth', 'density', 'enthalpy', 'length',
+            'pressure', 'temperature', 'velocity', 'viscosity',
+            'gamma', 'thread', 'tol', 'yplus'
+        ]
+        data['solver']['reference-values'] = {
+            value: re.search(
+                fr'\(reference-{value}\s+([^)\s]+)\)',
+                general_info
+            ).group(1)
+            for value in reference_values
+        }
 
     if kwargs['mat']:
         import sexpdata
