@@ -33,6 +33,9 @@ pip install .
 
 ## Usage
 
+> [!IMPORTANT]
+> Only tested with Ansys Fluent 25R2!
+
 ```
 cffview <file> [options]
 ```
@@ -78,6 +81,10 @@ cffview case.cas.h5 --version
 # Extract raw Scheme strings for manual inspection
 cffview case.cas.h5 --extract
 ```
+
+### Demo
+
+[demo.webm](https://github.com/user-attachments/assets/9047a354-b5cb-475e-b030-97609e2a1274)
 
 ---
 
