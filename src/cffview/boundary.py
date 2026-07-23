@@ -24,6 +24,7 @@ class Fluid:
     id_: str
     material: str = ''
     sources: str = ''
+    sources_terms: str = ''
     fixed: str = ''
     mrf_motion: str = ''
     mgrid_motion: str = ''
@@ -31,6 +32,14 @@ class Fluid:
     laminar: str = ''
     porous: str = ''
     fanzone: str = ''
+
+    def to_dict(self) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        if data['sources'] == '#f':
+            data.pop('sources_terms', None)
+
+        return data
 
 
 @dataclass
@@ -40,6 +49,17 @@ class Solid:
     id_: str
     material: str = ''
     sources: str = ''
+    sources_terms: str = ''
+    fixed: str = ''
+    solid_motion: str = ''
+
+    def to_dict(self) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        if data['sources'] == '#f':
+            data.pop('sources_terms', None)
+
+        return data
 
 
 @dataclass
@@ -211,6 +231,13 @@ class PressureOutlet:
 
 
 @dataclass
+@BoundaryFactory.register('outflow')
+class Outflow:
+    name: str
+    id_: str
+
+
+@dataclass
 @BoundaryFactory.register('wall')
 class Wall:
     name: str
@@ -296,6 +323,13 @@ class Interior:
 @dataclass
 @BoundaryFactory.register('symmetry')
 class Symmetry:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('axis')
+class Axis:
     name: str
     id_: str
 
