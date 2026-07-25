@@ -24,7 +24,7 @@ def read_case(file_path: str, **kwargs) -> dict[
     Literal[
         'solver', 'materials', 'boundary', 'named-expressions',
         'disc-scheme', 'report-definitions', 'plotsets', 'monitorsets',
-        'iter', 'contours', 'vectors'
+        'residuals', 'iter', 'contours', 'vectors'
     ],
     dict[str]
 ]:
@@ -315,6 +315,49 @@ def read_case(file_path: str, **kwargs) -> dict[
             monitorset_dict['report-defs'] = monitorset[-4][1:]
             data['monitorsets'][monitorset_dict['name']] = monitorset_dict
 
+    if kwargs['residuals']:
+        import sexpdata
+
+        data['residuals'] = {}
+
+        for setting in [
+            r'advanced-options\?', r'normalize\?', r'compute-local\?',
+            r'scale\?', 'convergence-criterion-type', 'n-display',
+            'n-save', r'plot\?', r'print\?', 'n-maximize-norms',
+        ]:
+            value = re.search(
+                fr'\(residuals/{setting}\s+(#[tf]|[\d.]+)\)',
+                general_info,
+            ).group(1)
+            data['residuals'][setting.removesuffix(r'\?')] = value
+        cct = data['residuals']['convergence-criterion-type']
+        data['residuals']['convergence-criterion-type'] = 'absolute' if cct == '0' else 'none'
+
+        if not (solver_time := data.get('solver', {}).get('time', None)):
+            case_config = re.search(
+                r'^\(case-config.*',
+                general_info,
+                re.M
+            ).group()
+            is_unsteady = re.search(
+                r"\(rp-unsteady\?\s+\.\s+([^()\s]+)\)",
+                case_config
+            ).group(1)
+            solver_time = "transient" if is_unsteady == "#t" else "steady"
+        residuals = 'residuals/settings-transient' if solver_time == 'transient' else 'residuals/settings'
+        res = re.search(
+            fr'(\({residuals}.*)',
+            general_info,
+            re.M
+        ).group(1)
+        res: list = sexpdata.loads(res, true=None)[1]
+        for eq in res:
+            data['residuals'][str(eq[0])] = {
+                'monitor': str(eq[1]),
+                'check-convergence': str(eq[3]),
+                'absolute-criteria': str(eq[4]),
+            }
+
     if kwargs['iter']:
         data['iter'] = {}
 
@@ -539,6 +582,7 @@ def main() -> None:
         (("--rd", "--report-definitions"), "show report-definitions settings"),
         (("--plotsets",), "show report-definitions plotsets settings"),
         (("--monitorsets",), "show report-definitions monitorsets settings"),
+        (("--residuals",), "show residuals settings"),
         (("--iter",), "show iteration settings"),
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
@@ -571,9 +615,10 @@ def main() -> None:
                 'rd': args.rd,
                 'plotsets': args.plotsets,
                 'monitorsets': args.monitorsets,
+                'residuals': args.residuals,
+                'iter': args.iter,
                 'contours': args.contours,
                 'vectors': args.vectors,
-                'iter': args.iter
             }
             output = read_case(args.file_path, **kwargs)
             print_colored_dict(output)

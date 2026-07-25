@@ -49,6 +49,7 @@ cffview <文件> [选项]
 | `--rd` | 报告定义 |
 | `--plotsets` | 图表集配置 |
 | `--monitorsets` | 监控集配置 |
+| `--residuals` | 残差设置 |
 | `--iter` | 迭代步数 / 时间步设置 |
 | `--contours` | 后处理云图配置 |
 | `--vectors` | 后处理矢量图配置 |

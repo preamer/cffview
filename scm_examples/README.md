@@ -1,1 +1,1 @@
-Some useful `*.scm` files extracted from the `*.cas.h5` file for understanding the main logic of the `read_case` function.
+Some `*.scm` files extracted from `*.cas.h5` file for understanding the main logic of `read_case` function.
