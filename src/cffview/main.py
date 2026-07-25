@@ -617,20 +617,11 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
             show_mesh(args.file_path)
         else:
             from .utils import print_colored_dict
-            kwargs = {
-                'solver': args.solver,
-                'mat': args.mat,
-                'bd': args.bd,
-                'ne': args.ne,
-                'disc': args.disc,
-                'rd': args.rd,
-                'plotsets': args.plotsets,
-                'monitorsets': args.monitorsets,
-                'residuals': args.residuals,
-                'iter': args.iter,
-                'contours': args.contours,
-                'vectors': args.vectors,
-            }
+            keys = [
+                'solver', 'mat', 'bd', 'ne', 'disc', 'rd',
+                'plotsets', 'monitorsets', 'residuals', 'iter', 'contours', 'vectors',
+            ]
+            kwargs = {k: getattr(args, k) for k in keys}
             output = read_case(args.file_path, **kwargs)
             print_colored_dict(output)
 
