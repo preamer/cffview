@@ -501,8 +501,6 @@ def show_mesh(file_path: str) -> None:
             show_edges=True,
             show_axes=True,
             anti_aliasing='ssaa',
-            smooth_shading=True,
-            split_sharp_edges=True,
         )
     elif file_path.endswith('msh.h5'):
         import numpy as np
@@ -562,8 +560,21 @@ def show_mesh(file_path: str) -> None:
 def main() -> None:
     import argparse
 
-    desc = "A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening Fluent"
-    parser = argparse.ArgumentParser(description=desc)
+    BANNER = r"""
+        ________      _
+  _____/ __/ __/   __(_)__ _      __
+ / ___/ /_/ /_| | / / / _ \ | /| / /
+/ /__/ __/ __/| |/ / /  __/ |/ |/ /
+\___/_/ /_/   |___/_/\___/|__/|__/
+
+A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening Fluent
+"""
+
+    parser = argparse.ArgumentParser(
+        prog='cffview',
+        description=BANNER,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
 
     parser.add_argument(
         "file_path",
