@@ -48,11 +48,11 @@ cffview <file> [options]
 | `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
 | `--showmesh` | Visualise the mesh interactively with PyVista |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
-| `--mat` | Material properties |
-| `--bd` | Boundary condition settings |
-| `--ne` | Named expressions |
+| `--mat`, `--materials` | Material properties |
+| `--bd`, `--boundary` | Boundary condition settings |
+| `--ne`, `--named-expressions` | Named expressions |
 | `--disc` | Discretisation schemes and relaxation factors |
-| `--rd` | Report definitions |
+| `--rd`, `--report-definitions` | Report definitions |
 | `--plotsets` | Plot sets |
 | `--monitorsets` | Monitor sets |
 | `--residuals` | Residual settings |

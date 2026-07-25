@@ -42,11 +42,11 @@ cffview <文件> [选项]
 | `--extract` | 将原始 Scheme 设置导出到 `general.scm` 和 `boundary.scm` |
 | `--showmesh` | 使用 PyVista 交互式显示网格 |
 | `--solver` | 求解器类型、时间类型、维度、精度、湍流模型、能量方程、辐射模型、重力 |
-| `--mat` | 材料属性 |
-| `--bd` | 边界条件设置 |
-| `--ne` | 命名表达式 |
+| `--mat`, `--materials` | 材料属性 |
+| `--bd`, `--boundary` | 边界条件设置 |
+| `--ne`, `--named-expressions` | 命名表达式 |
 | `--disc` | 离散格式和松弛因子 |
-| `--rd` | 报告定义 |
+| `--rd`, `--report-definitions` | 报告定义 |
 | `--plotsets` | 图表集配置 |
 | `--monitorsets` | 监控集配置 |
 | `--residuals` | 残差设置 |
