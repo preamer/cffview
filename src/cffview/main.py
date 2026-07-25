@@ -496,12 +496,7 @@ def show_mesh(file_path: str) -> None:
     """
     import pyvista as pv
     if file_path.endswith('cas.h5'):
-        pv.plot(
-            pv.read(file_path),
-            show_edges=True,
-            show_axes=True,
-            anti_aliasing='ssaa',
-        )
+        mesh = pv.read(file_path)
     elif file_path.endswith('msh.h5'):
         import numpy as np
         from h5py import File, Group, Dataset
@@ -547,14 +542,59 @@ def show_mesh(file_path: str) -> None:
             faces=pv_faces if dimension == 3 else None,
             lines=pv_faces if dimension == 2 else None
         )
-        plotter = pv.Plotter()
-        plotter.enable_anti_aliasing()
-        plotter.add_mesh(
-            mesh,
-            show_edges=True,
-        )
-        plotter.add_axes()
-        plotter.show()
+
+    pl = pv.Plotter()
+    pl.enable_anti_aliasing()
+
+    mesh = mesh.combine() if mesh.n_blocks > 1 else mesh
+    mesh_actor = pl.add_mesh(mesh, show_edges=True)
+
+    def toggle_opacity(value):
+        mesh_actor.prop.opacity = value
+
+    opacity_slider_widget = pl.add_slider_widget(
+        toggle_opacity,
+        rng=(0.1, 1.0),
+        value=1.0,
+        title="Opacity",
+        style="modern",
+    )
+
+    # Monkey patch to fix clip plane error
+    if isinstance(mesh, pv.UnstructuredGrid):
+        from pyvista import _vtk
+        _vtk._CORE_MODULES['vtkFiltersGeneral'] = (*_vtk._CORE_MODULES['vtkFiltersGeneral'], 'vtkClipDataSet')
+        _vtk._VTK_CLASS_TO_MODULE = {
+            cls: module
+            for module, classes in (_vtk._CORE_MODULES | _vtk._PLOTTING_MODULES | _vtk._OPENGL_MODULES).items()
+            for cls in classes
+        }
+        _vtk.vtkTableBasedClipDataSet = _vtk.vtkClipDataSet
+
+    mesh_clip_plane_actor = pl.add_mesh_clip_plane(mesh, show_edges=True)
+    mesh_clip_plane_actor.visibility = False
+    clip_plane = pl.widgets.plane_widgets[-1]
+    clip_plane.Off()
+
+    def toggle_slice(state):
+        if state:
+            mesh_actor.visibility = False
+            opacity_slider_widget.Off()
+            mesh_clip_plane_actor.visibility = True
+            clip_plane.On()
+        else:
+            mesh_actor.visibility = True
+            opacity_slider_widget.On()
+            mesh_clip_plane_actor.visibility = False
+            clip_plane.Off()
+
+    pl.add_checkbox_button_widget(
+        callback=toggle_slice,
+        value=False,
+    )
+
+    pl.add_axes()
+    pl.show()
 
 
 def main() -> None:
