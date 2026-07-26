@@ -591,9 +591,12 @@ def show_mesh(file_path: str) -> None:
     pl.add_checkbox_button_widget(
         callback=toggle_slice,
         value=False,
+        position=(10, 10),
+        size=40,
     )
+    pl.add_text("Clip Plane", position=(60, 20), font_size=10)
 
-    pl.add_axes()
+    pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
     pl.show()
 
 
