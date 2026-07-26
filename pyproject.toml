@@ -31,3 +31,6 @@ Repository = "https://github.com/preamer/cffview"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.autopep8]
+max_line_length = 120
