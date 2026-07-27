@@ -163,13 +163,34 @@ def read_case(file_path: str, **kwargs) -> dict[
             name = str(material[0])
             data['materials'][name] = {}
             data['materials'][name]['type'] = str(material[1])
-            for i in range(2, len(material)):
-                property_ = material[i]
+            for property_ in material[2:]:
                 if property_[1] == sexpdata.Symbol('.'):
                     data['materials'][name][str(property_[0])] = str(property_[2])
                 elif isinstance(p1 := property_[1], list):
                     if p1[1] == sexpdata.Symbol('.'):
                         data['materials'][name][str(property_[0])] = f'{p1[0]}/{p1[2]}'
+                    elif str(p1[1]) == 'piecewise-linear':
+                        value = [f'{p[0]}, {p[2]}' for p in p1[2:]]
+                        data['materials'][name][str(property_[0])] = {
+                            f'{p1[0]}/{p1[1]}': value
+                        }
+                    elif str(p1[1]) in ['piecewise-polynomial', 'nasa-9-piecewise-polynomial']:
+                        value = [str(p).strip('[]') for p in p1[2:]]
+                        data['materials'][name][str(property_[0])] = {
+                            f'{p1[0]}/{p1[1]}': value
+                        }
+                    elif str(p1[0]) == 'orthotropic':
+                        value = {}
+                        for p in p1[1:]:
+                            property_name = str(p[0])
+                            if property_name in ['direction-0', 'direction-1', 'direction-2']:
+                                value[property_name] = str(p[1:]).strip('[]')
+                            elif property_name in ['k0', 'k1', 'k2']:
+                                value[property_name] = f'{p[1][0]}/{p[1][2]}' if p[1][1] == sexpdata.Symbol(
+                                    '.') else f'{p[1][0]}/{p[1][1]}'
+                        data['materials'][name][str(property_[0])] = {
+                            f'{p1[0]}': value
+                        }
                     else:
                         value = ' '.join(str(p) for p in p1[1:])
                         data['materials'][name][str(property_[0])] = f'{p1[0]}/{value}'
