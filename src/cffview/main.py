@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, TypeAlias, Union
 
 
 def print_version(file_path: str) -> str:
@@ -42,6 +42,9 @@ def read_case(file_path: str, **kwargs) -> dict[
     """
     import re
     import h5py
+    import sexpdata
+
+    SexpdataList: TypeAlias = list[Union[sexpdata.Symbol, 'SexpdataList']]
 
     with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
@@ -150,15 +153,13 @@ def read_case(file_path: str, **kwargs) -> dict[
         }
 
     if kwargs['mat']:
-        import sexpdata
-
         data['materials'] = {}
         materials = re.search(
             r'(\(materials.*)',
             general_info,
             re.M
         ).group(1)
-        materials: list = sexpdata.loads(materials)
+        materials: SexpdataList = sexpdata.loads(materials)
         for material in materials[1]:
             name = str(material[0])
             data['materials'][name] = {}
@@ -196,11 +197,10 @@ def read_case(file_path: str, **kwargs) -> dict[
                         data['materials'][name][str(property_[0])] = f'{p1[0]}/{value}'
 
     if kwargs['bd']:
-        import sexpdata
         from .boundary import BoundaryFactory
 
         data['boundary'] = {}
-        boundaries: list[list] = sexpdata.parse(boundary_info, true=None)
+        boundaries: list[SexpdataList] = sexpdata.parse(boundary_info, true=None)
         for boundary_info in boundaries:
             id_, type_, name, _ = [str(_) for _ in boundary_info[1]]
             new_boundary = BoundaryFactory.create(name, id_, type_)
@@ -219,15 +219,13 @@ def read_case(file_path: str, **kwargs) -> dict[
             data['boundary'][type_] = b_list
 
     if kwargs['ne']:
-        import sexpdata
-
         data['named-expressions'] = {}
         nes = re.search(
             r'(\(named-expressions.*)',
             general_info,
             re.M
         ).group(1)
-        nes: list = sexpdata.loads(nes, true=None)[1]
+        nes: SexpdataList = sexpdata.loads(nes, true=None)[1]
         for ne in nes:
             ne_dict = {
                 str(property_[0]): str(property_[2])
@@ -273,15 +271,13 @@ def read_case(file_path: str, **kwargs) -> dict[
                 data['relax-factor'][eq] = relax_factor.get(eq, '')
 
     if kwargs['rd']:
-        import sexpdata
-
         data['report-definitions'] = {}
         rds = re.search(
             r'(\(monitor/report-definitions.*)',
             general_info,
             re.M
         ).group(1)
-        rds: list = sexpdata.loads(rds, true=None)[1]
+        rds: SexpdataList = sexpdata.loads(rds, true=None)[1]
         for rd in rds:
             name = str(rd[0][2])
             type_ = str(rd[1][1])
@@ -299,15 +295,13 @@ def read_case(file_path: str, **kwargs) -> dict[
                 data['report-definitions'][name]['per-zone?'] = str(rd[1][-5][2])
 
     if kwargs['plotsets']:
-        import sexpdata
-
         data['plotsets'] = {}
         plotsets = re.search(
             r'(\(monitor/plotsets.*)',
             general_info,
             re.M
         ).group(1)
-        plotsets: list = sexpdata.loads(plotsets, true=None)[1]
+        plotsets: SexpdataList = sexpdata.loads(plotsets, true=None)[1]
         for plotset in plotsets:
             plotset_dict = {
                 str(property_[0]): str(property_[2])
@@ -318,15 +312,13 @@ def read_case(file_path: str, **kwargs) -> dict[
             data['plotsets'][plotset_dict['name']] = plotset_dict
 
     if kwargs['monitorsets']:
-        import sexpdata
-
         data['monitorsets'] = {}
         monitorsets = re.search(
             r'(\(monitor/monitorsets.*)',
             general_info,
             re.M
         ).group(1)
-        monitorsets: list = sexpdata.loads(monitorsets, true=None)[1]
+        monitorsets: SexpdataList = sexpdata.loads(monitorsets, true=None)[1]
         for monitorset in monitorsets:
             monitorset_dict = {
                 str(property_[0]): str(property_[2])
@@ -337,8 +329,6 @@ def read_case(file_path: str, **kwargs) -> dict[
             data['monitorsets'][monitorset_dict['name']] = monitorset_dict
 
     if kwargs['residuals']:
-        import sexpdata
-
         data['residuals'] = {}
 
         for setting in [
@@ -371,7 +361,7 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        res: list = sexpdata.loads(res, true=None)[1]
+        res: SexpdataList = sexpdata.loads(res, true=None)[1]
         for eq in res:
             data['residuals'][str(eq[0])] = {
                 'monitor': str(eq[1]),
@@ -416,15 +406,13 @@ def read_case(file_path: str, **kwargs) -> dict[
                 ).group(1)
 
     if kwargs['contours']:
-        import sexpdata
-
         data['contours'] = {}
         contours = re.search(
             r'(\(graphics/contours.*)',
             general_info,
             re.M
         ).group(1)
-        contours: list = sexpdata.loads(contours, true=None)[1]
+        contours: SexpdataList = sexpdata.loads(contours, true=None)[1]
         for contour in contours:
             contour_dict = {
                 str(property_[0]): str(property_[2])
@@ -447,15 +435,13 @@ def read_case(file_path: str, **kwargs) -> dict[
             data['contours'][contour_dict['name']] = contour_dict
 
     if kwargs['vectors']:
-        import sexpdata
-
         data['vectors'] = {}
         vectors = re.search(
             r'(\(graphics/vectors\s.*)',
             general_info,
             re.M
         ).group(1)
-        vectors: list = sexpdata.loads(vectors, true=None)[1]
+        vectors: SexpdataList = sexpdata.loads(vectors, true=None)[1]
         for vector in vectors:
             vector_dict = {
                 str(property_[0]): str(property_[2])
