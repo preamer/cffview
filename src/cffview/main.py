@@ -567,7 +567,7 @@ def show_mesh(file_path: str) -> None:
     pl = pv.Plotter()
     pl.enable_anti_aliasing()
 
-    mesh = mesh.combine() if mesh.n_blocks > 1 else mesh
+    mesh = mesh.combine() if isinstance(mesh, pv.MultiBlock) else mesh
     mesh_actor = pl.add_mesh(mesh, show_edges=True)
 
     def toggle_opacity(value):
