@@ -1,3 +1,5 @@
+import sys
+
 # From context.scm
 FLUENT_ENUM = {
     "0": "First Order Upwind",
@@ -62,6 +64,23 @@ CELL_TYPES = {
     5: "Pyramid",
     6: "Wedge",
     7: "Polyhedron",
+}
+
+KEYBOARD_SHORTCUTS = {
+    'q': 'Close the rendering window',
+    'f': 'Focus and zoom in on a point',
+    'v': 'Isometric camera view',
+    'w': 'Switch all datasets to a wireframe representation',
+    'r': 'Reset the camera to view all datasets',
+    's': 'Switch all datasets to a surface representation',
+    'shift+click or middle-click' if not sys.platform.startswith('darwin') else 'shift+click': 'Pan the rendering scene',
+    'left-click' if not sys.platform.startswith('darwin') else 'cmd+click': 'Rotate the rendering scene in 3D',
+    'ctrl+click': 'Rotate the rendering scene in 2D(view-plane)',
+    'mouse-wheel or right-click' if not sys.platform.startswith('darwin') else 'ctl+click': 'Continuously zoom the rendering scene',
+    'shift+s': 'Save a screenshot(only on BackgroundPlotter)',
+    'shift+c': 'Enable interactive cell selection/picking',
+    'up/down': 'Zoom in and out',
+    '+ /-': 'Increase/decrease the point size and line widths',
 }
 
 
