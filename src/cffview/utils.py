@@ -83,6 +83,26 @@ KEYBOARD_SHORTCUTS = {
     '+ /-': 'Increase/decrease the point size and line widths',
 }
 
+DATA_KEYS = (
+    'SV_BF_V',
+    'SV_DENSITY',
+    'SV_DENSITY_RG_AUX',
+    'SV_DISCONT',
+    'SV_H',
+    'SV_H_RG_AUX',
+    'SV_MU_LAM',
+    'SV_NORMAL_MACH',
+    'SV_P',
+    'SV_P_RG_AUX',
+    'SV_T',
+    'SV_U',
+    'SV_U_RG_AUX',
+    'SV_V',
+    'SV_V_RG_AUX',
+    'SV_W',
+    'SV_W_RG_AUX',
+)
+
 
 def print_colored_dict(data) -> None:
     """Print nested data in 4-space JSON format.
