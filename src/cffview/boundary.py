@@ -71,20 +71,35 @@ class VelocityInlet:
     frame_of_reference: str = ''
     vmag: str = ''
     t: str = ''
+
     ke_spec: str = ''
     turb_intensity: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
 
+    coordinate_system: str = ''
+    ni: str = ''
+    nj: str = ''
+    nk: str = ''
+    u: str = ''
+    v: str = ''
+    w: str = ''
+
     _VELOCITY_SPEC = {
-        '1': 'Magnitude and Direction',
+        '0': 'Magnitude and Direction',
+        '1': 'Components',
         '2': 'Magnitude, Normal to Boundary',
-        '3': 'Components',
     }
 
     _FRAME_OF_REFERENCE = {
         '0': 'Absolute',
         '1': 'Ralative to Adjacent Cell Zone',
+    }
+
+    _COORDINATE_SYSTEM = {
+        '0': 'Cartesian(X, Y, Z)',
+        '1': 'Cylindrical(Radial, Tangential, Axial)',
+        '2': 'Local Cylindrical(Radial, Tangential, Axial)',
     }
 
     _KE_SPEC = {
@@ -98,6 +113,7 @@ class VelocityInlet:
 
         data['velocity_spec'] = self._VELOCITY_SPEC.get(self.velocity_spec, 'unknown')
         data['frame_of_reference'] = self._FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
+        data['coordinate_system'] = self._COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
         data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
 
         match data['ke_spec']:
@@ -110,6 +126,24 @@ class VelocityInlet:
             case 'Intensity and Hydraulic Diameter':
                 data.pop('turb_length_scale', None)
                 data.pop('turb_viscosity_ratio', None)
+
+        match data['velocity_spec']:
+            case 'Magnitude and Direction':
+                data.pop('u', None)
+                data.pop('v', None)
+                data.pop('w', None)
+            case 'Components':
+                data.pop('ni', None)
+                data.pop('nj', None)
+                data.pop('nk', None)
+            case 'Magnitude, Normal to Boundary':
+                data.pop('coordinate_system', None)
+                data.pop('ni', None)
+                data.pop('nj', None)
+                data.pop('nk', None)
+                data.pop('u', None)
+                data.pop('v', None)
+                data.pop('w', None)
 
         return data
 
@@ -147,6 +181,13 @@ class PressureInlet:
     p0: str = ''
     p: str = ''
     t0: str = ''
+
+    direction_spec: str = ''
+    coordinate_system: str = ''
+    ni: str = ''
+    nj: str = ''
+    nk: str = ''
+
     ke_spec: str = ''
     prevent_reverse_flow: str = ''
     turb_intensity: str = ''
@@ -159,6 +200,18 @@ class PressureInlet:
         '1': 'Ralative to Adjacent Cell Zone',
     }
 
+    _DIRECTION_SPEC = {
+        '0': 'Direction Vector',
+        '1': 'Normal to Boundary',
+    }
+
+    _COORDINATE_SYSTEM = {
+        '0': 'Cartesian(X, Y, Z)',
+        '1': 'Cylindrical(Radial, Tangential, Axial)',
+        '2': 'Local Cylindrical(Radial, Tangential, Axial)',
+        '3': 'Local Cylindrical Swirl',
+    }
+
     _KE_SPEC = {
         '1': 'Intensity and Length Scale',
         '2': 'Intensity and Viscosity Ratio',
@@ -169,7 +222,18 @@ class PressureInlet:
         data = self.__dict__.copy()
 
         data['frame_of_reference'] = self._FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
+        data['direction_spec'] = self._DIRECTION_SPEC.get(self.direction_spec, 'unknown')
+        data['coordinate_system'] = self._COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
         data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
+
+        match data['direction_spec']:
+            case 'Direction Vector':
+                pass
+            case 'Normal to Boundary':
+                data.pop('coordinate_system', None)
+                data.pop('ni', None)
+                data.pop('nj', None)
+                data.pop('nk', None)
 
         match data['ke_spec']:
             case 'Intensity and Length Scale':
@@ -212,7 +276,10 @@ class PressureOutlet:
         data = self.__dict__.copy()
 
         if self.prevent_reverse_flow == '#t':
-            for key in ['t', 'ke_spec', 'turb_intensity', 'turb_length_scale', 'targeted_mf_boundary', 'turb_hydraulic_diam', 'turb_viscosity_ratio']:
+            for key in [
+                't', 'ke_spec', 'turb_intensity', 'turb_length_scale',
+                'targeted_mf_boundary', 'turb_hydraulic_diam', 'turb_viscosity_ratio',
+            ]:
                 data.pop(key, None)
         else:
             data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
@@ -235,6 +302,7 @@ class PressureOutlet:
 class Outflow:
     name: str
     id_: str
+    flowrate_frac: str = ''
 
 
 @dataclass
@@ -245,10 +313,12 @@ class Wall:
     d: str = ''
     q_dot: str = ''
     material: str = ''
+
     thermal_bc: str = ''
     t: str = ''
     q: str = ''
     h: str = ''
+
     motion_bc: str = ''
     shear_bc: str = ''
     rough_bc: str = ''
@@ -257,21 +327,36 @@ class Wall:
     roughness_height: str = ''
     roughness_const: str = ''
 
+    planar_conduction: str = ''
+    shell_conduction: str = ''
+
     _THERMAL_BC = {
-        '1': 'Heat Flux',
-        '2': 'Temperature',
+        '0': 'Heat Flux',
+        '1': 'Temperature',
+        '2': 'Convection',
         '3': 'Coupled',
+        '4': 'Radiation',
+        '5': 'Mixed',
+        '8': 'via System Coupling',
     }
 
-    _MOTION_BC = {}
+    _MOTION_BC = {
+        '0': 'Stationary Wall',
+        '1': 'Moving Wall',
+    }
 
-    _SHEAR_BC = {}
+    _SHEAR_BC = {
+        '0': 'No Slip',
+        '1': 'Specified Shear',
+        '2': 'Specularity Coefficient',
+        '3': 'Marangoni Stress',
+    }
 
     _ROUGH_BC = {}
 
     _THERMAL_BC_WHITELIST = {
-        '1': {'q_dot'},  # Heat Flux
-        '2': {'t'},  # Temperature
+        '0': {'q_dot'},  # Heat Flux
+        '1': {'t'},  # Temperature
         '3': set(),  # Coupled
     }
 
@@ -285,6 +370,11 @@ class Wall:
             data.pop(attr, None)
 
         data['thermal_bc'] = self._THERMAL_BC.get(self.thermal_bc, 'unknown')
+        data['motion_bc'] = self._MOTION_BC.get(self.motion_bc, 'unknown')
+        data['shear_bc'] = self._SHEAR_BC.get(self.shear_bc, 'unknown')
+
+        if data['planar_conduction'] == '#f':
+            data.pop('shell_conduction', None)
 
         return data
 
