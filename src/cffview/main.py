@@ -557,11 +557,8 @@ def show_mesh(file_path: str) -> None:
     mesh = mesh.combine() if isinstance(mesh, pv.MultiBlock) else mesh
     mesh_actor = pl.add_mesh(mesh, show_edges=True)
 
-    def toggle_opacity(value):
-        mesh_actor.prop.opacity = value
-
     opacity_slider_widget = pl.add_slider_widget(
-        toggle_opacity,
+        lambda value: setattr(mesh_actor.prop, 'opacity', value),
         rng=(0.1, 1.0),
         value=1.0,
         title="Opacity",
