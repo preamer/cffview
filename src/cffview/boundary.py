@@ -1,6 +1,61 @@
 from dataclasses import dataclass
 
 
+class BoundaryConsts:
+    VELOCITY_SPEC = {
+        '0': 'Magnitude and Direction',
+        '1': 'Components',
+        '2': 'Magnitude, Normal to Boundary',
+    }
+
+    FRAME_OF_REFERENCE = {
+        '0': 'Absolute',
+        '1': 'Ralative to Adjacent Cell Zone',
+    }
+
+    COORDINATE_SYSTEM = {
+        '0': 'Cartesian(X, Y, Z)',
+        '1': 'Cylindrical(Radial, Tangential, Axial)',
+        '2': 'Local Cylindrical(Radial, Tangential, Axial)',
+        '3': 'Local Cylindrical Swirl',
+    }
+
+    KE_SPEC = {
+        '1': 'Intensity and Length Scale',
+        '2': 'Intensity and Viscosity Ratio',
+        '3': 'Intensity and Hydraulic Diameter',
+    }
+
+    DIRECTION_SPEC = {
+        '0': 'Direction Vector',
+        '1': 'Normal to Boundary',
+    }
+
+    THERMAL_BC = {
+        '0': 'Heat Flux',
+        '1': 'Temperature',
+        '2': 'Convection',
+        '3': 'Coupled',
+        '4': 'Radiation',
+        '5': 'Mixed',
+        '8': 'via System Coupling',
+    }
+
+    MOTION_BC = {
+        '0': 'Stationary Wall',
+        '1': 'Moving Wall',
+    }
+
+    SHEAR_BC = {
+        '0': 'No Slip',
+        '1': 'Specified Shear',
+        '2': 'Specularity Coefficient',
+        '3': 'Marangoni Stress',
+    }
+
+    ROUGH_BC = {}
+
+
 class BoundaryFactory:
     _REGISTRY = {}
 
@@ -85,36 +140,13 @@ class VelocityInlet:
     v: str = ''
     w: str = ''
 
-    _VELOCITY_SPEC = {
-        '0': 'Magnitude and Direction',
-        '1': 'Components',
-        '2': 'Magnitude, Normal to Boundary',
-    }
-
-    _FRAME_OF_REFERENCE = {
-        '0': 'Absolute',
-        '1': 'Ralative to Adjacent Cell Zone',
-    }
-
-    _COORDINATE_SYSTEM = {
-        '0': 'Cartesian(X, Y, Z)',
-        '1': 'Cylindrical(Radial, Tangential, Axial)',
-        '2': 'Local Cylindrical(Radial, Tangential, Axial)',
-    }
-
-    _KE_SPEC = {
-        '1': 'Intensity and Length Scale',
-        '2': 'Intensity and Viscosity Ratio',
-        '3': 'Intensity and Hydraulic Diameter',
-    }
-
     def to_dict(self) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        data['velocity_spec'] = self._VELOCITY_SPEC.get(self.velocity_spec, 'unknown')
-        data['frame_of_reference'] = self._FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
-        data['coordinate_system'] = self._COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
-        data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
+        data['velocity_spec'] = BoundaryConsts.VELOCITY_SPEC.get(self.velocity_spec, 'unknown')
+        data['frame_of_reference'] = BoundaryConsts.FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
+        data['coordinate_system'] = BoundaryConsts.COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
+        data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
 
         match data['ke_spec']:
             case 'Intensity and Length Scale':
@@ -195,36 +227,13 @@ class PressureInlet:
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
 
-    _FRAME_OF_REFERENCE = {
-        '0': 'Absolute',
-        '1': 'Ralative to Adjacent Cell Zone',
-    }
-
-    _DIRECTION_SPEC = {
-        '0': 'Direction Vector',
-        '1': 'Normal to Boundary',
-    }
-
-    _COORDINATE_SYSTEM = {
-        '0': 'Cartesian(X, Y, Z)',
-        '1': 'Cylindrical(Radial, Tangential, Axial)',
-        '2': 'Local Cylindrical(Radial, Tangential, Axial)',
-        '3': 'Local Cylindrical Swirl',
-    }
-
-    _KE_SPEC = {
-        '1': 'Intensity and Length Scale',
-        '2': 'Intensity and Viscosity Ratio',
-        '3': 'Intensity and Hydraulic Diameter',
-    }
-
     def to_dict(self) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        data['frame_of_reference'] = self._FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
-        data['direction_spec'] = self._DIRECTION_SPEC.get(self.direction_spec, 'unknown')
-        data['coordinate_system'] = self._COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
-        data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
+        data['frame_of_reference'] = BoundaryConsts.FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
+        data['direction_spec'] = BoundaryConsts.DIRECTION_SPEC.get(self.direction_spec, 'unknown')
+        data['coordinate_system'] = BoundaryConsts.COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
+        data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
 
         match data['direction_spec']:
             case 'Direction Vector':
@@ -266,12 +275,6 @@ class PressureOutlet:
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
 
-    _KE_SPEC = {
-        '1': 'Intensity and Length Scale',
-        '2': 'Intensity and Viscosity Ratio',
-        '3': 'Intensity and Hydraulic Diameter',
-    }
-
     def to_dict(self) -> dict[str, str]:
         data = self.__dict__.copy()
 
@@ -282,7 +285,7 @@ class PressureOutlet:
             ]:
                 data.pop(key, None)
         else:
-            data['ke_spec'] = self._KE_SPEC.get(self.ke_spec, 'unknown')
+            data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
             match data['ke_spec']:
                 case 'Intensity and Length Scale':
                     data.pop('turb_viscosity_ratio', None)
@@ -330,30 +333,6 @@ class Wall:
     planar_conduction: str = ''
     shell_conduction: str = ''
 
-    _THERMAL_BC = {
-        '0': 'Heat Flux',
-        '1': 'Temperature',
-        '2': 'Convection',
-        '3': 'Coupled',
-        '4': 'Radiation',
-        '5': 'Mixed',
-        '8': 'via System Coupling',
-    }
-
-    _MOTION_BC = {
-        '0': 'Stationary Wall',
-        '1': 'Moving Wall',
-    }
-
-    _SHEAR_BC = {
-        '0': 'No Slip',
-        '1': 'Specified Shear',
-        '2': 'Specularity Coefficient',
-        '3': 'Marangoni Stress',
-    }
-
-    _ROUGH_BC = {}
-
     _THERMAL_BC_WHITELIST = {
         '0': {'q_dot'},  # Heat Flux
         '1': {'t'},  # Temperature
@@ -369,9 +348,9 @@ class Wall:
         for attr in attrs_to_remove:
             data.pop(attr, None)
 
-        data['thermal_bc'] = self._THERMAL_BC.get(self.thermal_bc, 'unknown')
-        data['motion_bc'] = self._MOTION_BC.get(self.motion_bc, 'unknown')
-        data['shear_bc'] = self._SHEAR_BC.get(self.shear_bc, 'unknown')
+        data['thermal_bc'] = BoundaryConsts.THERMAL_BC.get(self.thermal_bc, 'unknown')
+        data['motion_bc'] = BoundaryConsts.MOTION_BC.get(self.motion_bc, 'unknown')
+        data['shear_bc'] = BoundaryConsts.SHEAR_BC.get(self.shear_bc, 'unknown')
 
         if data['planar_conduction'] == '#f':
             data.pop('shell_conduction', None)
