@@ -501,8 +501,7 @@ def show_mesh(file_path: str) -> None:
         Path to the .h5 file
     """
     import pyvista as pv
-    from pprint import pprint
-    from .utils import KEYBOARD_SHORTCUTS
+    from .utils import KEYBOARD_SHORTCUTS, print_colored_dict
 
     if file_path.endswith('cas.h5'):
         mesh = pv.read(file_path)
@@ -606,7 +605,7 @@ def show_mesh(file_path: str) -> None:
     pl.add_text("Clip Plane", position=(60, 20), font_size=10)
 
     pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
-    pprint(KEYBOARD_SHORTCUTS, sort_dicts=False)
+    print_colored_dict(KEYBOARD_SHORTCUTS)
     pl.show()
 
 
