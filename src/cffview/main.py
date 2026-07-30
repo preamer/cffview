@@ -607,6 +607,7 @@ def show_mesh(file_path: str) -> None:
 
 
 def main() -> None:
+    import os
     import argparse
 
     BANNER = r"""
@@ -632,8 +633,9 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     )
 
     ARGUMENTS = [
-        (("--extract",), "extract cas.h5 general and boundary string to files"),
         (("--version",), "show the version of the .h5 file"),
+        (("--extract",), "extract cas.h5 general and boundary string to files"),
+        (("--showmesh",), "show mesh using pyvista"),
         (("--solver",), "show solver settings"),
         (("--mat", "--materials"), "show materials settings"),
         (("--bd", "--boundary"), "show boundary settings"),
@@ -647,13 +649,16 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
         (("--save",), "save output to file"),
-        (("--showmesh",), "show mesh using pyvista"),
     ]
 
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
 
     args = parser.parse_args()
+
+    if not args.file_path.endswith((".cas.h5", ".msh.h5")):
+        print("Invalid file path. Please provide a .cas.h5 or .msh.h5 file.")
+        return
 
     if args.version:
         print_version(args.file_path)
