@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class BoundaryConsts:
@@ -79,7 +79,7 @@ class Fluid:
     id_: str
     material: str = ''
     sources: str = ''
-    sources_terms: str = ''
+    source_terms: dict[str, dict[str, str]] = field(default_factory=dict)
     fixed: str = ''
     mrf_motion: str = ''
     mgrid_motion: str = ''
@@ -104,7 +104,7 @@ class Solid:
     id_: str
     material: str = ''
     sources: str = ''
-    sources_terms: str = ''
+    source_terms: dict[str, dict[str, str]] = field(default_factory=dict)
     fixed: str = ''
     solid_motion: str = ''
 
@@ -235,14 +235,11 @@ class PressureInlet:
         data['coordinate_system'] = BoundaryConsts.COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
         data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
 
-        match data['direction_spec']:
-            case 'Direction Vector':
-                pass
-            case 'Normal to Boundary':
-                data.pop('coordinate_system', None)
-                data.pop('ni', None)
-                data.pop('nj', None)
-                data.pop('nk', None)
+        if data['direction_spec'] == 'Normal to Boundary':
+            data.pop('coordinate_system', None)
+            data.pop('ni', None)
+            data.pop('nj', None)
+            data.pop('nk', None)
 
         match data['ke_spec']:
             case 'Intensity and Length Scale':
@@ -265,6 +262,7 @@ class PressureOutlet:
     id_: str
     p: str = ''
     t0: str = ''
+
     ke_spec: str = ''
     prevent_reverse_flow: str = ''
     radial: str = ''
@@ -385,6 +383,13 @@ class Radiator:
 @dataclass
 @BoundaryFactory.register('interior')
 class Interior:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('interface')
+class Interface:
     name: str
     id_: str
 
