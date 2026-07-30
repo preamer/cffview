@@ -205,26 +205,23 @@ def read_case(file_path: str, **kwargs) -> dict[
             new_boundary = BoundaryFactory.create(name, id_, type_)
             b_list = data['boundary'].get(type_, [])
 
-            for property_ in boundary_info[2]:
+            for property_ in filter(lambda x: len(x) > 1, boundary_info[2]):
                 property_name = str(property_[0]).replace('-', '_').replace('?', '').replace('/', '_')
                 if hasattr(new_boundary, property_name):
-                    if len(property_) > 1:
-                        if property_[1] == sexpdata.Symbol('.'):
-                            setattr(new_boundary, property_name, str(property_[2]))
-                        elif isinstance(property_[1], list):
-                            if property_name == 'source_terms':
-                                source_terms_list = property_[1:]
-                                value = {}
-                                for source_term in source_terms_list:
-                                    if len(source_term) > 1:
-                                        value[source_term[0]] = {}
-                                        source_property = source_term[1]
-                                        for source_property_ in source_property:
-                                            if source_property_[1] == sexpdata.Symbol('.'):
-                                                value[source_term[0]][source_property_[0]] = str(source_property_[2])
-                                setattr(new_boundary, property_name, value)
-                            else:
-                                setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
+                    if property_[1] == sexpdata.Symbol('.'):
+                        setattr(new_boundary, property_name, str(property_[2]))
+                    elif isinstance(property_[1], list):
+                        if property_name == 'source_terms':
+                            source_terms_list = property_[1:]
+                            value = {}
+                            for source_term in filter(lambda x: len(x) > 1, source_terms_list):
+                                value[source_term[0]] = {}
+                                source_property = source_term[1]
+                                for source_property_ in filter(lambda x: x[1] == sexpdata.Symbol('.'), source_property):
+                                    value[source_term[0]][source_property_[0]] = str(source_property_[2])
+                            setattr(new_boundary, property_name, value)
+                        else:
+                            setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
 
             b_list.append(new_boundary.to_dict() if hasattr(new_boundary, 'to_dict') else new_boundary.__dict__)
             data['boundary'][type_] = b_list
