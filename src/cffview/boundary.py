@@ -92,7 +92,7 @@ class Fluid:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
-            data.pop('sources_terms', None)
+            data.pop('source_terms', None)
 
         return data
 
@@ -112,7 +112,7 @@ class Solid:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
-            data.pop('sources_terms', None)
+            data.pop('source_terms', None)
 
         return data
 
@@ -331,24 +331,27 @@ class Wall:
     planar_conduction: str = ''
     shell_conduction: str = ''
 
-    _THERMAL_BC_WHITELIST = {
-        '0': {'q_dot'},  # Heat Flux
-        '1': {'t'},  # Temperature
-        '3': set(),  # Coupled
-    }
-
     def to_dict(self) -> dict[str, str]:
         data = self.__dict__.copy()
-
-        allowed_attrs = self._THERMAL_BC_WHITELIST.get(self.thermal_bc, set())
-        all_thermal_attrs = {'t', 'q_dot', 'h', 'q'}
-        attrs_to_remove = all_thermal_attrs - allowed_attrs
-        for attr in attrs_to_remove:
-            data.pop(attr, None)
 
         data['thermal_bc'] = BoundaryConsts.THERMAL_BC.get(self.thermal_bc, 'unknown')
         data['motion_bc'] = BoundaryConsts.MOTION_BC.get(self.motion_bc, 'unknown')
         data['shear_bc'] = BoundaryConsts.SHEAR_BC.get(self.shear_bc, 'unknown')
+
+        match data['thermal_bc']:
+            case 'Heat Flux':
+                data.pop('t', None)
+                data.pop('q', None)
+                data.pop('h', None)
+            case 'Temperature':
+                data.pop('q_dot', None)
+                data.pop('q', None)
+                data.pop('h', None)
+            case 'Coupled':
+                data.pop('q_dot', None)
+                data.pop('t', None)
+                data.pop('q', None)
+                data.pop('h', None)
 
         if data['planar_conduction'] == '#f':
             data.pop('shell_conduction', None)
