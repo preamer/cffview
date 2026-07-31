@@ -43,8 +43,9 @@ def read_case(file_path: str, **kwargs) -> dict[
     import re
     import h5py
     import sexpdata
+    from .utils import stringify_nested_list
 
-    SexpdataList: TypeAlias = list[Union[sexpdata.Symbol, 'SexpdataList']]
+    NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
 
     with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
@@ -159,35 +160,34 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        materials: SexpdataList = sexpdata.loads(materials)
+        materials: NestedStrList = stringify_nested_list(sexpdata.loads(materials))
         for material in materials[1]:
-            name = str(material[0])
+            name = material[0]
             data['materials'][name] = {}
-            data['materials'][name]['type'] = str(material[1])
+            data['materials'][name]['type'] = material[1]
             for property_ in material[2:]:
-                property_name = str(property_[0])
-                if property_[1] == sexpdata.Symbol('.'):
-                    data['materials'][name][property_name] = str(property_[2])
+                property_name = property_[0]
+                if property_[1] == '.':
+                    data['materials'][name][property_name] = property_[2]
                 elif isinstance(property_value_list := property_[1], list):
-                    if property_value_list[1] == sexpdata.Symbol('.'):
+                    if property_value_list[1] == '.':
                         data['materials'][name][property_name] = f'{property_value_list[0]}/{property_value_list[2]}'
-                    elif str(property_value_list[1]) == 'piecewise-linear':
+                    elif property_value_list[1] == 'piecewise-linear':
                         value = [f'{p[0]}, {p[2]}' for p in property_value_list[2:]]
                         data['materials'][name][property_name] = {
                             f'{property_value_list[0]}/{property_value_list[1]}': value
                         }
-                    elif str(property_value_list[1]) in ['piecewise-polynomial', 'nasa-9-piecewise-polynomial']:
+                    elif property_value_list[1] in ['piecewise-polynomial', 'nasa-9-piecewise-polynomial']:
                         value = [str(p).strip('[]') for p in property_value_list[2:]]
                         data['materials'][name][property_name] = {
                             f'{property_value_list[0]}/{property_value_list[1]}': value
                         }
-                    elif str(property_value_list[0]) == 'orthotropic':
+                    elif property_value_list[0] == 'orthotropic':
                         value = {}
                         for p in property_value_list[1:]:
-                            orth_property_name = str(p[0])
+                            orth_property_name = p[0]
                             if orth_property_name in ['direction-0', 'direction-1', 'direction-2']:
                                 value[orth_property_name] = str(p[1:]).strip('[]')
-                                value[orth_property_name] = sexpdata.cdr(p)
                             elif orth_property_name in ['k0', 'k1', 'k2']:
                                 value[orth_property_name] = f'{sexpdata.car(p[1])}/{sexpdata.cdr(p[1])}'
                         data['materials'][name][property_name] = {f'{property_value_list[0]}': value}
@@ -199,17 +199,17 @@ def read_case(file_path: str, **kwargs) -> dict[
         from .boundary import BoundaryFactory
 
         data['boundary'] = {}
-        boundaries: list[SexpdataList] = sexpdata.parse(boundary_info, true=None)
+        boundaries: list[NestedStrList] = stringify_nested_list(sexpdata.parse(boundary_info, true=None))
         for boundary_info in boundaries:
-            id_, type_, name, _ = [str(_) for _ in boundary_info[1]]
+            id_, type_, name, _ = [_ for _ in boundary_info[1]]
             new_boundary = BoundaryFactory.create(name, id_, type_)
             b_list = data['boundary'].get(type_, [])
 
             for property_ in filter(lambda x: len(x) > 1, boundary_info[2]):
-                property_name = str(property_[0]).replace('-', '_').replace('?', '').replace('/', '_')
+                property_name = property_[0].replace('-', '_').replace('?', '').replace('/', '_')
                 if hasattr(new_boundary, property_name):
-                    if property_[1] == sexpdata.Symbol('.'):
-                        setattr(new_boundary, property_name, str(property_[2]))
+                    if property_[1] == '.':
+                        setattr(new_boundary, property_name, property_[2])
                     elif isinstance(property_[1], list):
                         if property_name == 'source_terms':
                             source_terms_list = property_[1:]
@@ -217,8 +217,8 @@ def read_case(file_path: str, **kwargs) -> dict[
                             for source_term in filter(lambda x: len(x) > 1, source_terms_list):
                                 value[source_term[0]] = {}
                                 source_property = source_term[1]
-                                for source_property_ in filter(lambda x: x[1] == sexpdata.Symbol('.'), source_property):
-                                    value[source_term[0]][source_property_[0]] = str(source_property_[2])
+                                for source_property_ in filter(lambda x: x[1] == '.', source_property):
+                                    value[source_term[0]][source_property_[0]] = source_property_[2]
                             setattr(new_boundary, property_name, value)
                         else:
                             setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
@@ -233,10 +233,10 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        nes: SexpdataList = sexpdata.loads(nes, true=None)[1]
+        nes: NestedStrList = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
         for ne in nes:
             ne_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in ne
             }
             data['named-expressions'][ne_dict['name']] = ne_dict
@@ -285,22 +285,22 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        rds: SexpdataList = sexpdata.loads(rds, true=None)[1]
+        rds: NestedStrList = stringify_nested_list(sexpdata.loads(rds, true=None)[1])
         for rd in rds:
-            name = str(rd[0][2])
-            type_ = str(rd[1][1])
+            name = rd[0][2]
+            type_ = rd[1][1]
             data['report-definitions'][name] = {'type': type_}
             if 'volume' in type_:
-                data['report-definitions'][name]['field'] = str(rd[1][2][2])
-                data['report-definitions'][name]['zones'] = [str(zone) for zone in rd[1][6][1:]]
-                data['report-definitions'][name]['per-zone?'] = str(rd[1][-5][2])
+                data['report-definitions'][name]['field'] = rd[1][2][2]
+                data['report-definitions'][name]['zones'] = [zone for zone in rd[1][6][1:]]
+                data['report-definitions'][name]['per-zone?'] = rd[1][-5][2]
             elif 'surface' in type_:
-                data['report-definitions'][name]['field'] = str(rd[1][2][2])
-                data['report-definitions'][name]['surfaces'] = [str(surface) for surface in rd[1][5][1:]]
-                data['report-definitions'][name]['per-surface?'] = str(rd[1][-5][2])
+                data['report-definitions'][name]['field'] = rd[1][2][2]
+                data['report-definitions'][name]['surfaces'] = [surface for surface in rd[1][5][1:]]
+                data['report-definitions'][name]['per-surface?'] = rd[1][-5][2]
             elif 'flux' in type_:
-                data['report-definitions'][name]['zones'] = [str(zone) for zone in rd[1][3][1:]]
-                data['report-definitions'][name]['per-zone?'] = str(rd[1][-5][2])
+                data['report-definitions'][name]['zones'] = [zone for zone in rd[1][3][1:]]
+                data['report-definitions'][name]['per-zone?'] = rd[1][-5][2]
 
     if kwargs['plotsets']:
         data['plotsets'] = {}
@@ -309,12 +309,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        plotsets: SexpdataList = sexpdata.loads(plotsets, true=None)[1]
+        plotsets: NestedStrList = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
         for plotset in plotsets:
             plotset_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in plotset
-                if str(property_[0]) not in ['old-props', 'report-defs']
+                if property_[0] not in ['old-props', 'report-defs']
             }
             plotset_dict['report-defs'] = plotset[6][1:]
             data['plotsets'][plotset_dict['name']] = plotset_dict
@@ -326,12 +326,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        monitorsets: SexpdataList = sexpdata.loads(monitorsets, true=None)[1]
+        monitorsets: NestedStrList = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
         for monitorset in monitorsets:
             monitorset_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in monitorset
-                if str(property_[0]) not in ['old-props', 'report-defs']
+                if property_[0] not in ['old-props', 'report-defs']
             }
             monitorset_dict['report-defs'] = monitorset[-4][1:]
             data['monitorsets'][monitorset_dict['name']] = monitorset_dict
@@ -369,12 +369,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        res: SexpdataList = sexpdata.loads(res, true=None)[1]
+        res: NestedStrList = stringify_nested_list(sexpdata.loads(res, true=None)[1])
         for eq in res:
-            data['residuals'][str(eq[0])] = {
-                'monitor': str(eq[1]),
-                'check-convergence': str(eq[3]),
-                'absolute-criteria': str(eq[4]),
+            data['residuals'][eq[0]] = {
+                'monitor': eq[1],
+                'check-convergence': eq[3],
+                'absolute-criteria': eq[4],
             }
 
     if kwargs['iter']:
@@ -420,12 +420,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        contours: SexpdataList = sexpdata.loads(contours, true=None)[1]
+        contours: NestedStrList = stringify_nested_list(sexpdata.loads(contours, true=None)[1])
         for contour in contours:
             contour_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in contour
-                if str(property_[0]) not in [
+                if property_[0] not in [
                     'locations', 'location-ids', 'options',
                     'range-options', 'range-option', 'surfaces-list',
                     'color-map', 'colorings', 'annotations-list',
@@ -433,11 +433,11 @@ def read_case(file_path: str, **kwargs) -> dict[
             }
             contour_dict['surface-list'] = contour[2][1]
             contour_dict['range-options'] = {
-                str(range_option[0]): str(range_option[2])
+                range_option[0]: range_option[2]
                 for range_option in contour[6][1:]
             }
             contour_dict['color-map'] = {
-                str(color_map[0]): str(color_map[2])
+                color_map[0]: color_map[2]
                 for color_map in contour[-7][1:]
             }
             data['contours'][contour_dict['name']] = contour_dict
@@ -449,12 +449,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        vectors: SexpdataList = sexpdata.loads(vectors, true=None)[1]
+        vectors: NestedStrList = stringify_nested_list(sexpdata.loads(vectors, true=None)[1])
         for vector in vectors:
             vector_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in vector
-                if str(property_[0]) not in [
+                if property_[0] not in [
                     'locations', 'location-ids', 'options', 'scale',
                     'range-options', 'range-option', 'surfaces-list',
                     'color-map', 'vector-opt', 'annotations-list',
@@ -462,19 +462,19 @@ def read_case(file_path: str, **kwargs) -> dict[
             }
             vector_dict['surface-list'] = vector[3][1]
             vector_dict['range-options'] = {
-                str(range_option[0]): str(range_option[2])
+                range_option[0]: range_option[2]
                 for range_option in vector[7][1:]
             }
             vector_dict['scale'] = {
-                str(scale[0]): str(scale[2])
+                scale[0]: scale[2]
                 for scale in vector[9][1:]
             }
             vector_dict['vector-opt'] = {
-                str(vector_opt[0]): str(vector_opt[2])
+                vector_opt[0]: vector_opt[2]
                 for vector_opt in vector[-6][1:]
             }
             vector_dict['color-map'] = {
-                str(color_map[0]): str(color_map[2])
+                color_map[0]: color_map[2]
                 for color_map in vector[-5][1:]
             }
             data['vectors'][vector_dict['name']] = vector_dict
@@ -486,12 +486,12 @@ def read_case(file_path: str, **kwargs) -> dict[
             general_info,
             re.M
         ).group(1)
-        xy_plots = sexpdata.loads(xy_plots, true=None)[1]
+        xy_plots: NestedStrList = stringify_nested_list(sexpdata.loads(xy_plots, true=None)[1])
         for xy_plot in xy_plots:
             xy_plot_dict = {
-                str(property_[0]): str(property_[2])
+                property_[0]: property_[2]
                 for property_ in xy_plot
-                if str(property_[0]) not in [
+                if property_[0] not in [
                     'options', 'x-axis-data', 'y-axis-data',
                     'surfaces-list', 'location-ids', 'locations',
                     'option', 'plot-direction', 'axes',

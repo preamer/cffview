@@ -162,3 +162,10 @@ def print_colored_dict(data) -> None:
             else:
                 # Number / boolean / null inside an array
                 print(f"{indent}{PRIM_COLOR}{content}{RESET}")
+
+
+def stringify_nested_list(lst):
+    return [
+        stringify_nested_list(item) if isinstance(item, list) else str(item)
+        for item in lst
+    ]
