@@ -46,7 +46,7 @@ cffview <file> [options]
 |---|---|
 | `--version` | Print the Fluent version of file |
 | `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
-| `--showmesh` | Visualise the mesh interactively with PyVista |
+| `--mesh`, `--showmesh` | Visualise the mesh interactively with PyVista |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
 | `--mat`, `--materials` | Material properties |
 | `--bd`, `--boundary` | Boundary condition settings |

@@ -664,7 +664,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     ARGUMENTS = [
         (("--version",), "show the version of the .h5 file"),
         (("--extract",), "extract cas.h5 general and boundary string to files"),
-        (("--showmesh",), "show mesh using pyvista"),
+        (("--mesh", "--showmesh",), "show mesh using pyvista"),
         (("--solver",), "show solver settings"),
         (("--mat", "--materials"), "show materials settings"),
         (("--bd", "--boundary"), "show boundary settings"),
@@ -697,7 +697,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     elif args.file_path.endswith(".msh.h5"):
         show_mesh(args.file_path)
     elif args.file_path.endswith(".cas.h5"):
-        if args.showmesh:
+        if args.mesh:
             show_mesh(args.file_path)
         else:
             from .utils import print_colored_dict

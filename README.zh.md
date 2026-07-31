@@ -40,7 +40,7 @@ cffview <文件> [选项]
 |---|---|
 | `--version` | 打印文件对应的 Fluent 版本号 |
 | `--extract` | 将原始 Scheme 设置导出到 `general.scm` 和 `boundary.scm` |
-| `--showmesh` | 使用 PyVista 交互式显示网格 |
+| `--mesh`, `--showmesh` | 使用 PyVista 交互式显示网格 |
 | `--solver` | 求解器类型、时间类型、维度、精度、湍流模型、能量方程、辐射模型、重力 |
 | `--mat`, `--materials` | 材料属性 |
 | `--bd`, `--boundary` | 边界条件设置 |
