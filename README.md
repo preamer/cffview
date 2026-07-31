@@ -59,6 +59,7 @@ cffview <file> [options]
 | `--iter` | Iteration / time-step settings |
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
+| `--xy`, `--xy-plot` | Graphics xy-plot settings |
 | `--save` | Save the output to `<file>.json` |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.

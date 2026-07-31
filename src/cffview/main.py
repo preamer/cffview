@@ -479,6 +479,27 @@ def read_case(file_path: str, **kwargs) -> dict[
             }
             data['vectors'][vector_dict['name']] = vector_dict
 
+    if kwargs['xy']:
+        data['xy-plot'] = {}
+        xy_plots = re.search(
+            r'(\(graphics/xy-plot.*)',
+            general_info,
+            re.M
+        ).group(1)
+        xy_plots = sexpdata.loads(xy_plots, true=None)[1]
+        for xy_plot in xy_plots:
+            xy_plot_dict = {
+                str(property_[0]): str(property_[2])
+                for property_ in xy_plot
+                if str(property_[0]) not in [
+                    'options', 'x-axis-data', 'y-axis-data',
+                    'surfaces-list', 'location-ids', 'locations',
+                    'option', 'plot-direction', 'axes',
+                ]
+            }
+            xy_plot_dict['surfaces-list'] = xy_plot[7][1]
+            data['xy-plot'][xy_plot_dict['name']] = xy_plot_dict
+
     return data
 
 
@@ -656,6 +677,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--iter",), "show iteration settings"),
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
+        (("--xy", "--xy-plot"), "show graphics xy-plot settings"),
         (("--save",), "save output to file"),
     ]
 
@@ -681,7 +703,8 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
             from .utils import print_colored_dict
             keys = [
                 'solver', 'mat', 'bd', 'ne', 'disc', 'rd',
-                'plotsets', 'monitorsets', 'residuals', 'iter', 'contours', 'vectors',
+                'plotsets', 'monitorsets', 'residuals', 'iter',
+                'contours', 'vectors', 'xy',
             ]
             kwargs = {k: getattr(args, k) for k in keys}
             output = read_case(args.file_path, **kwargs)
