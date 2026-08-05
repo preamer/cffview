@@ -11,8 +11,6 @@ A command-line tool for inspecting Ansys Fluent `.cas.h5` / `.msh.h5` files **wi
 - Read solver settings, materials, boundary conditions, discretisation schemes, and more directly from the HDF5 file.
 - Visualise the mesh with [PyVista](https://pyvista.org).
 
----
-
 ## Installation
 
 ### PyPI
@@ -28,8 +26,6 @@ git clone https://github.com/preamer/cffview.git
 cd cffview
 pip install .
 ```
-
----
 
 ## Usage
 
@@ -61,6 +57,7 @@ cffview <file> [options]
 | `--vectors` | Graphics vectors settings |
 | `--xy`, `--xy-plot` | Graphics xy-plot settings |
 | `--save` | Save the output to `<file>.json` |
+| `--plot` | Plot the outfile with matplotlib |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
 
@@ -87,8 +84,6 @@ cffview case.cas.h5 --extract
 ### Demo
 
 [demo.webm](https://github.com/user-attachments/assets/9047a354-b5cb-475e-b030-97609e2a1274)
-
----
 
 ## License
 

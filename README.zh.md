@@ -5,8 +5,6 @@
 - 直接从 HDF5 文件中读取求解器设置、材料、边界条件、离散格式等信息。
 - 使用 [PyVista](https://pyvista.org) 可视化网格。
 
----
-
 ## 安装
 
 ### PyPI
@@ -22,8 +20,6 @@ git clone https://github.com/preamer/cffview.git
 cd cffview
 pip install .
 ```
-
----
 
 ## 用法
 
@@ -55,6 +51,7 @@ cffview <文件> [选项]
 | `--vectors` | 后处理矢量图配置 |
 | `--xy`, `--xy-plot` | 后处理xy图配置 |
 | `--save` | 将输出保存为 `<文件>.json` |
+| `--plot` | 使用 matplotlib 绘制 outfile 文件|
 
 多个选项可以自由组合。算例设置类选项（`--solver`、`--mat` 等）仅适用于 `.cas.h5` 文件。
 
@@ -81,8 +78,6 @@ cffview case.cas.h5 --extract
 ### 演示
 
 [demo.webm](https://github.com/user-attachments/assets/9c5bad50-83f4-4da4-8f8d-ed8b88537472)
-
----
 
 ## 开源协议
 

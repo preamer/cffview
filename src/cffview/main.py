@@ -1,7 +1,7 @@
 from typing import Literal, TypeAlias, Union
 
 
-def print_version(file_path: str) -> str:
+def print_version(file_path: str) -> None:
     """Get the version of the .h5 file
 
     Parameters
@@ -24,7 +24,7 @@ def read_case(file_path: str, **kwargs) -> dict[
     Literal[
         'solver', 'materials', 'boundary', 'named-expressions',
         'disc-scheme', 'report-definitions', 'plotsets', 'monitorsets',
-        'residuals', 'iter', 'contours', 'vectors'
+        'residuals', 'iter', 'contours', 'vectors', 'xy-plot',
     ],
     dict[str]
 ]:
@@ -636,6 +636,39 @@ def show_mesh(file_path: str) -> None:
     pl.show()
 
 
+def plot_outfile(file_path: str) -> None:
+    """Plot Ansys Fluent report files
+
+    Parameters
+    ---------
+    file_path : str
+        Path to the  outfile
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    with open(file_path, encoding='utf-8') as f:
+        for line_num, line in enumerate(f, start=1):
+            match line_num:
+                case 1:
+                    title = line.strip().strip('"')
+                case 2:
+                    _, *report_definitions = [s.strip('"') for s in line.strip().split()]
+                case 3:
+                    xlabel, *ylabels = [s.strip('"') for s in line.strip('( )').split()]
+                case _:
+                    break
+
+    data = np.loadtxt(file_path, skiprows=3)
+    plt.figure()
+    plt.plot(data[:, 0], data[:, 1:])
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.legend(ylabels)
+    plt.grid()
+    plt.show()
+
+
 def main() -> None:
     import argparse
 
@@ -658,7 +691,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     parser.add_argument(
         "file_path",
         type=str,
-        help="path to the .h5 file"
+        help="path to the .h5 file",
     )
 
     ARGUMENTS = [
@@ -679,6 +712,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--vectors",), "show graphics vectors settings"),
         (("--xy", "--xy-plot"), "show graphics xy-plot settings"),
         (("--save",), "save output to file"),
+        (("--plot",), "plot outfile"),
     ]
 
     for flags, help_text in ARGUMENTS:
@@ -686,8 +720,9 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
 
     args = parser.parse_args()
 
-    if not args.file_path.endswith((".cas.h5", ".msh.h5")):
-        print("Invalid file path. Please provide a .cas.h5 or .msh.h5 file.")
+    if not args.file_path.endswith((".cas.h5", ".msh.h5")) and not args.plot:
+        print("Invalid arguments.")
+        print("Please provide a .cas.h5 or .msh.h5 file or add --plot argument to plot outfile")
         return
 
     if args.version:
@@ -714,3 +749,5 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
                 import json
                 with open(f"{args.file_path}.json", "w", encoding="utf-8") as f:
                     json.dump(output, f, ensure_ascii=False, indent=4)
+    elif args.plot:
+        plot_outfile(args.file_path)
