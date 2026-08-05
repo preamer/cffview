@@ -34,3 +34,4 @@ where = ["src"]
 
 [tool.autopep8]
 max_line_length = 120
+ignore = "E401"
