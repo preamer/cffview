@@ -534,7 +534,9 @@ def show_mesh(file_path: str) -> None:
     from .utils import KEYBOARD_SHORTCUTS, print_colored_dict
 
     if file_path.endswith('cas.h5'):
-        mesh = pv.read(file_path)
+        from .utils import disable_dat_file
+        with disable_dat_file(file_path):
+            mesh = pv.read(file_path)
     elif file_path.endswith('msh.h5'):
         import numpy as np
         from h5py import File, Group, Dataset
@@ -553,7 +555,7 @@ def show_mesh(file_path: str) -> None:
 
             coords_group: Group = root_group['nodes/coords']
             for i in range(nZones):
-                pv_points[minId[i] - 1: maxId[i], :dimension] = coords_group[f'{i+1}'][:]
+                pv_points[minId[i] - 1: maxId[i], :dimension] = coords_group[f'{i + 1}'][:]
 
             zoneTopology: Group = root_group['faces/zoneTopology']
             minId: Dataset = zoneTopology['minId']
@@ -562,13 +564,13 @@ def show_mesh(file_path: str) -> None:
             faces_nodes_group: Group = root_group['faces/nodes']
             nSections: np.uint64 = faces_nodes_group.attrs['nSections'][0]
             for i in range(nSections):
-                section_group: Group = faces_nodes_group[f"{i+1}"]
+                section_group: Group = faces_nodes_group[f"{i + 1}"]
                 nnodes[minId[i] - 1: maxId[i]] = section_group['nnodes'][:]
             nodes_count = np.sum(nnodes)
             nodes = np.zeros(nodes_count, dtype=np.uint32)
             nodes_start_index = 0
             for i in range(nSections):
-                section_group: Group = faces_nodes_group[f"{i+1}"]
+                section_group: Group = faces_nodes_group[f"{i + 1}"]
                 nodes_num = section_group['nodes'].size
                 nodes[nodes_start_index: nodes_start_index + nodes_num] = section_group['nodes'][:] - 1
                 nodes_start_index += nodes_num

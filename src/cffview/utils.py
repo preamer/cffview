@@ -1,4 +1,5 @@
 import sys
+from contextlib import contextmanager
 
 # From context.scm
 FLUENT_ENUM = {
@@ -169,3 +170,26 @@ def stringify_nested_list(lst):
         stringify_nested_list(item) if isinstance(item, list) else str(item)
         for item in lst
     ]
+
+
+@contextmanager
+def disable_dat_file(cas_path):
+    """ Context manager that temporarily isolates the .dat.h5 file with the same name. """
+    import os
+    base_path = os.path.splitext(cas_path)[0]
+    if base_path.endswith('.cas'):
+        base_path = base_path[:-4]
+
+    dat_path = base_path + ".dat.h5"
+    bak_path = base_path + ".dat.h5.tmp_bak"
+
+    renamed = False
+    if os.path.exists(dat_path):
+        os.rename(dat_path, bak_path)
+        renamed = True
+
+    try:
+        yield
+    finally:
+        if renamed and os.path.exists(bak_path):
+            os.rename(bak_path, dat_path)
