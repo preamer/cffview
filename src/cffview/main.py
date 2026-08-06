@@ -531,10 +531,9 @@ def show_mesh(file_path: str) -> None:
         Path to the .h5 file
     """
     import pyvista as pv
-    from .utils import KEYBOARD_SHORTCUTS, print_colored_dict
+    from .utils import KEYBOARD_SHORTCUTS, print_colored_dict, disable_dat_file
 
     if file_path.endswith('cas.h5'):
-        from .utils import disable_dat_file
         with disable_dat_file(file_path):
             mesh = pv.read(file_path)
     elif file_path.endswith('msh.h5'):
@@ -595,6 +594,11 @@ def show_mesh(file_path: str) -> None:
         value=1.0,
         title="Opacity",
         style="modern",
+        pointa=(0.55, 0.93),
+        pointb=(0.95, 0.93),
+        slider_width=0.03,
+        tube_width=0.03,
+        title_height=0.03,
     )
 
     # Monkey patch to fix clip plane error
@@ -625,13 +629,47 @@ def show_mesh(file_path: str) -> None:
             mesh_clip_plane_actor.visibility = False
             clip_plane.Off()
 
-    pl.add_checkbox_button_widget(
+    clip_plane_check_box = pl.add_checkbox_button_widget(
         callback=toggle_slice,
         value=False,
         position=(10, 10),
         size=40,
     )
+    clip_plane_check_box.callback = toggle_slice
     pl.add_text("Clip Plane", position=(60, 20), font_size=10)
+
+    def toggle_grid(state):
+        pl.show_grid(font_size=10, fmt='%.2f') if state else pl.remove_bounds_axes()
+
+    show_grid_check_box = pl.add_checkbox_button_widget(
+        callback=toggle_grid,
+        value=False,
+        position=(10, 55),
+        size=40,
+    )
+    show_grid_check_box.callback = toggle_grid
+    pl.add_text("Show Grid", position=(60, 65), font_size=10)
+
+    def on_key_press(key_name: str):
+        def reverse_state(button_widget):
+            rep = button_widget.GetButtonRepresentation()
+            new_state = not bool(rep.GetState())
+            rep.SetState(new_state)
+            button_widget.callback(new_state)
+
+        match key_name:
+            case 'c':
+                reverse_state(clip_plane_check_box)
+            case 'g':
+                reverse_state(show_grid_check_box)
+
+    pl.add_key_event('c', lambda: on_key_press('c'))
+    pl.add_key_event('g', lambda: on_key_press('g'))
+    KEYBOARD_SHORTCUTS = {
+        **KEYBOARD_SHORTCUTS,
+        'c': 'Toggle Clip Plane',
+        'g': 'Toggle Grid',
+    }
 
     pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
     print_colored_dict(KEYBOARD_SHORTCUTS)
