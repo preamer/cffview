@@ -667,14 +667,14 @@ def show_mesh(file_path: str) -> None:
 
     pl.add_key_event('c', lambda: on_key_press('c'))
     pl.add_key_event('g', lambda: on_key_press('g'))
-    KEYBOARD_SHORTCUTS = {
+    keyboard_shortcuts = {
         **KEYBOARD_SHORTCUTS,
         'c': 'Toggle Clip Plane',
         'g': 'Toggle Grid',
     }
 
     pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
-    print_colored_dict(KEYBOARD_SHORTCUTS)
+    print_colored_dict(keyboard_shortcuts)
     pl.show()
 
 
