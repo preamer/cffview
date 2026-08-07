@@ -365,17 +365,19 @@ def read_case(file_path: str, **kwargs) -> dict[
             solver_time = "transient" if is_unsteady == "#t" else "steady"
         residuals = 'residuals/settings-transient' if solver_time == 'transient' else 'residuals/settings'
         res = re.search(
-            fr'(\({residuals}.*)',
+            fr'(\({residuals}\s+.*)',
             general_info,
             re.M
         ).group(1)
-        res: NestedStrList = stringify_nested_list(sexpdata.loads(res, true=None)[1])
-        for eq in res:
-            data['residuals'][eq[0]] = {
-                'monitor': eq[1],
-                'check-convergence': eq[3],
-                'absolute-criteria': eq[4],
-            }
+        res = sexpdata.loads(res, true=None)[1]
+        if str(res) != '#f':
+            res: NestedStrList = stringify_nested_list(res)
+            for eq in res:
+                data['residuals'][eq[0]] = {
+                    'monitor': eq[1],
+                    'check-convergence': eq[3],
+                    'absolute-criteria': eq[4],
+                }
 
     if kwargs['iter']:
         data['iter'] = {}
