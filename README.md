@@ -83,7 +83,7 @@ cffview case.cas.h5 --extract
 
 ### Demo
 
-[demo.webm](https://github.com/user-attachments/assets/9047a354-b5cb-475e-b030-97609e2a1274)
+https://github.com/user-attachments/assets/7f97b559-87fa-4822-be9f-4e82b8c5cab6
 
 ## License
 
