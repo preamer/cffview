@@ -198,6 +198,31 @@ def read_case(file_path: str, **kwargs) -> dict[
     if kwargs['bd']:
         from .boundary import BoundaryFactory
 
+        # get tubulence model
+        if not (solver_turb := data.get('solver', {}).get('turb', None)):
+            case_config = re.search(
+                r'^\(case-config.*',
+                general_info,
+                re.M
+            ).group()
+            kvs = {
+                m[0]: m[1]
+                for m in re.findall(
+                    r"\(([^()\s]+)\s+\.\s+([^()\s]+)\)",
+                    case_config
+                )
+            }
+            if kvs['rp-visc?'] == "#f":
+                solver_turb = "inviscid"
+            else:
+                for key in [
+                    'rp-lam?', 'rp-ke?', 'rp-kw?', 'rp-sa?', 'sg-rsm?',
+                    'rp-les?', 'rp-des?', 'rp-kklw', 'rp-v2f?'
+                ]:
+                    if kvs[key] == "#t":
+                        solver_turb = key[3:-1]
+                        break
+
         data['boundary'] = {}
         boundaries: list[NestedStrList] = stringify_nested_list(sexpdata.parse(boundary_info, true=None))
         for boundary_info in boundaries:
@@ -223,7 +248,11 @@ def read_case(file_path: str, **kwargs) -> dict[
                         else:
                             setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
 
-            b_list.append(new_boundary.to_dict() if hasattr(new_boundary, 'to_dict') else new_boundary.__dict__)
+            b_list.append(
+                new_boundary.to_dict(solver_turb)
+                if hasattr(new_boundary, 'to_dict')
+                else new_boundary.__dict__
+            )
             data['boundary'][type_] = b_list
 
     if kwargs['ne']:
@@ -581,14 +610,18 @@ def show_mesh(file_path: str) -> None:
         mesh = pv.PolyData(
             pv_points,
             faces=pv_faces if dimension == 3 else None,
-            lines=pv_faces if dimension == 2 else None
+            lines=pv_faces if dimension == 2 else None,
         )
 
     pl = pv.Plotter()
     pl.enable_anti_aliasing()
 
     mesh = mesh.combine() if isinstance(mesh, pv.MultiBlock) else mesh
-    mesh_actor = pl.add_mesh(mesh, show_edges=True)
+    mesh_actor = pl.add_mesh(
+        mesh,
+        show_edges=True,
+        line_width=5 if locals().get('dimension') == 2 else None,
+    )
 
     opacity_slider_widget = pl.add_slider_widget(
         lambda value: setattr(mesh_actor.prop, 'opacity', value),

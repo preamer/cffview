@@ -53,7 +53,14 @@ class BoundaryConsts:
         '3': 'Marangoni Stress',
     }
 
-    ROUGH_BC = {}
+    ROUGH_BC = {
+        '0': 'Standard',
+        '1': 'High Roughness (Icing)',
+    }
+
+    @classmethod
+    def __class_getitem__(cls, key: str):
+        return getattr(cls, key.upper(), None)
 
 
 class BoundaryFactory:
@@ -88,7 +95,7 @@ class Fluid:
     porous: str = ''
     fanzone: str = ''
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
@@ -108,7 +115,7 @@ class Solid:
     fixed: str = ''
     solid_motion: str = ''
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
@@ -122,10 +129,11 @@ class Solid:
 class VelocityInlet:
     name: str
     id_: str
+
+    # region momentum
     velocity_spec: str = ''
     frame_of_reference: str = ''
     vmag: str = ''
-    t: str = ''
 
     ke_spec: str = ''
     turb_intensity: str = ''
@@ -139,14 +147,17 @@ class VelocityInlet:
     u: str = ''
     v: str = ''
     w: str = ''
+    # endregion momentum
 
-    def to_dict(self) -> dict[str, str]:
+    # region thermal
+    t: str = ''
+    # endregion thermal
+
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        data['velocity_spec'] = BoundaryConsts.VELOCITY_SPEC.get(self.velocity_spec, 'unknown')
-        data['frame_of_reference'] = BoundaryConsts.FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
-        data['coordinate_system'] = BoundaryConsts.COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
-        data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
+        for key in ['velocity_spec', 'frame_of_reference', 'coordinate_system', 'ke_spec']:
+            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
         match data['ke_spec']:
             case 'Intensity and Length Scale':
@@ -169,13 +180,8 @@ class VelocityInlet:
                 data.pop('nj', None)
                 data.pop('nk', None)
             case 'Magnitude, Normal to Boundary':
-                data.pop('coordinate_system', None)
-                data.pop('ni', None)
-                data.pop('nj', None)
-                data.pop('nk', None)
-                data.pop('u', None)
-                data.pop('v', None)
-                data.pop('w', None)
+                for key in ['coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w']:
+                    data.pop(key, None)
 
         return data
 
@@ -209,10 +215,11 @@ class MassFlowOutlet:
 class PressureInlet:
     name: str
     id_: str
+
+    # region momentum
     frame_of_reference: str = ''
     p0: str = ''
     p: str = ''
-    t0: str = ''
 
     direction_spec: str = ''
     coordinate_system: str = ''
@@ -226,20 +233,21 @@ class PressureInlet:
     turb_length_scale: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
+    # endregion momentum
 
-    def to_dict(self) -> dict[str, str]:
+    # region thermal
+    t0: str = ''
+    # endregion thermal
+
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        data['frame_of_reference'] = BoundaryConsts.FRAME_OF_REFERENCE.get(self.frame_of_reference, 'unknown')
-        data['direction_spec'] = BoundaryConsts.DIRECTION_SPEC.get(self.direction_spec, 'unknown')
-        data['coordinate_system'] = BoundaryConsts.COORDINATE_SYSTEM.get(self.coordinate_system, 'unknown')
-        data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
+        for key in ['frame_of_reference', 'direction_spec', 'coordinate_system', 'ke_spec']:
+            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
         if data['direction_spec'] == 'Normal to Boundary':
-            data.pop('coordinate_system', None)
-            data.pop('ni', None)
-            data.pop('nj', None)
-            data.pop('nk', None)
+            for key in ['ni', 'nj', 'nk', 'coordinate_system']:
+                data.pop(key, None)
 
         match data['ke_spec']:
             case 'Intensity and Length Scale':
@@ -260,8 +268,9 @@ class PressureInlet:
 class PressureOutlet:
     name: str
     id_: str
+
+    # region momentum
     p: str = ''
-    t0: str = ''
 
     ke_spec: str = ''
     prevent_reverse_flow: str = ''
@@ -272,8 +281,13 @@ class PressureOutlet:
     targeted_mf_boundary: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
+    # endregion momentum
 
-    def to_dict(self) -> dict[str, str]:
+    # region thermal
+    t0: str = ''
+    # endregion thermal
+
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if self.prevent_reverse_flow == '#t':
@@ -311,6 +325,18 @@ class Outflow:
 class Wall:
     name: str
     id_: str
+
+    # region momentum
+    motion_bc: str = ''
+    shear_bc: str = ''
+    rough_bc: str = ''
+    moving: str = ''
+    relative: str = ''
+    roughness_height: str = ''
+    roughness_const: str = ''
+    # endregion momentum
+
+    # region thermal
     d: str = ''
     q_dot: str = ''
     material: str = ''
@@ -320,23 +346,15 @@ class Wall:
     q: str = ''
     h: str = ''
 
-    motion_bc: str = ''
-    shear_bc: str = ''
-    rough_bc: str = ''
-    moving: str = ''
-    relative: str = ''
-    roughness_height: str = ''
-    roughness_const: str = ''
-
     planar_conduction: str = ''
     shell_conduction: str = ''
+    # endregion thermal
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        data['thermal_bc'] = BoundaryConsts.THERMAL_BC.get(self.thermal_bc, 'unknown')
-        data['motion_bc'] = BoundaryConsts.MOTION_BC.get(self.motion_bc, 'unknown')
-        data['shear_bc'] = BoundaryConsts.SHEAR_BC.get(self.shear_bc, 'unknown')
+        for key in ['thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc']:
+            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
         match data['thermal_bc']:
             case 'Heat Flux':
@@ -348,13 +366,16 @@ class Wall:
                 data.pop('q', None)
                 data.pop('h', None)
             case 'Coupled':
-                data.pop('q_dot', None)
-                data.pop('t', None)
-                data.pop('q', None)
-                data.pop('h', None)
+                for key in ['q_dot', 't', 'q', 'h']:
+                    data.pop(key, None)
 
         if data['planar_conduction'] == '#f':
             data.pop('shell_conduction', None)
+
+        if turb_model in ('inviscid', 'lam'):
+            data.pop('rough_bc', None)
+            data.pop('roughness_height', None)
+            data.pop('roughness_const', None)
 
         return data
 
