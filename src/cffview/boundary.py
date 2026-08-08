@@ -32,12 +32,14 @@ class BoundaryConsts:
     }
 
     THERMAL_BC = {
-        '0': 'Heat Flux',
-        '1': 'Temperature',
+        '0': 'Temperature',
+        '1': 'Heat Flux',
         '2': 'Convection',
         '3': 'Coupled',
         '4': 'Radiation',
         '5': 'Mixed',
+        '6': 'Network',
+        '7': 'Skip',
         '8': 'via System Coupling',
     }
 
@@ -49,8 +51,10 @@ class BoundaryConsts:
     SHEAR_BC = {
         '0': 'No Slip',
         '1': 'Specified Shear',
-        '2': 'Specularity Coefficient',
-        '3': 'Marangoni Stress',
+        '2': 'Marangoni Stress',
+        '3': 'Specularity Coefficient',
+        '4': 'Finite Slip',
+        '5': 'Partial Slip',
     }
 
     ROUGH_BC = {
@@ -365,16 +369,6 @@ class Wall:
     shell_conduction: str = ''
     # endregion thermal
 
-    THERMAL_BC = {
-        '0': 'Heat Flux',
-        '1': 'Temperature',
-        '2': 'Convection',
-        '3': 'Coupled',
-        '4': 'Radiation',
-        '5': 'Mixed',
-        '8': 'via System Coupling',
-    }
-
     def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
@@ -382,11 +376,11 @@ class Wall:
             data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
         match data['thermal_bc']:
-            case 'Heat Flux':
-                for key in ['t', 'h', 'tinf', 'ex_emiss', 'trad']:
-                    data.pop(key, None)
             case 'Temperature':
                 for key in ['q', 'h', 'tinf', 'ex_emiss', 'trad']:
+                    data.pop(key, None)
+            case 'Heat Flux':
+                for key in ['t', 'h', 'tinf', 'ex_emiss', 'trad']:
                     data.pop(key, None)
             case 'Convection':
                 for key in ['q', 't', 'ex_emiss', 'trad']:
