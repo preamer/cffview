@@ -271,11 +271,11 @@ def read_case(file_path: str, **kwargs) -> dict[
             data['named-expressions'][ne_dict['name']] = ne_dict
 
     if kwargs['disc']:
-        from .utils import FLUENT_ENUM
+        from .utils import DISCRETIZATION_SCHEME
 
         data['disc-scheme'] = {}
         disc_scheme = {
-            ds[0]: FLUENT_ENUM[ds[1]]
+            ds[0]: DISCRETIZATION_SCHEME[ds[1]]
             for ds in re.findall(
                 r'\((.*)/scheme\s+(\d+)\)',
                 general_info

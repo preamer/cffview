@@ -1,8 +1,8 @@
 import sys
 from contextlib import contextmanager
 
-# From context.scm
-FLUENT_ENUM = {
+# from Ansys Fluent sg.h
+DISCRETIZATION_SCHEME = {
     "0": "First Order Upwind",
     "1": "Second Order Upwind",
     "2": "Power Law",
@@ -12,22 +12,32 @@ FLUENT_ENUM = {
     "6": "Third-Order MUSCL",
     "7": "Bounded Central Differencing",
     "8": "CICSAM",
+
+    # the LES flux for the cpld solver
     "9": "Low Diffusion Second Order",
-    "10": "Standard",
+
+    # these are for face pressure interpolation
+    "10": "Standard",  # default
     "11": "Linear",
     "12": "Second Order",
     "13": "Body Force Weighted",
     "14": "PRESTO!",
     "15": "Continuity Based",
+
     "16": "Geo-Reconstruct",
     "17": "Donor-Acceptor",
+
     "18": "Modified Body Force Weighted",
+
     "20": "SIMPLE",
     "21": "SIMPLEC",
     "22": "PISO",
     "23": "Phase Coupled SIMPLE",
     "24": "Coupled",
     "25": "Fractional Step",
+    "26": "M_P_COUPLED",
+    "27": "M_P_FULL_COUPLED",
+
     "28": "Compressive",
     "29": "BGM",
     "30": "Phase Coupled PISO",
