@@ -159,16 +159,20 @@ class VelocityInlet:
         for key in ['velocity_spec', 'frame_of_reference', 'coordinate_system', 'ke_spec']:
             data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
-        match data['ke_spec']:
-            case 'Intensity and Length Scale':
-                data.pop('turb_viscosity_ratio', None)
-                data.pop('turb_hydraulic_diam', None)
-            case 'Intensity and Viscosity Ratio':
-                data.pop('turb_length_scale', None)
-                data.pop('turb_hydraulic_diam', None)
-            case 'Intensity and Hydraulic Diameter':
-                data.pop('turb_length_scale', None)
-                data.pop('turb_viscosity_ratio', None)
+        if turb_model in ['inviscid', 'lam']:
+            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
+                data.pop(key, None)
+        else:
+            match data['ke_spec']:
+                case 'Intensity and Length Scale':
+                    data.pop('turb_viscosity_ratio', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Viscosity Ratio':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Hydraulic Diameter':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_viscosity_ratio', None)
 
         match data['velocity_spec']:
             case 'Magnitude and Direction':
@@ -249,16 +253,20 @@ class PressureInlet:
             for key in ['ni', 'nj', 'nk', 'coordinate_system']:
                 data.pop(key, None)
 
-        match data['ke_spec']:
-            case 'Intensity and Length Scale':
-                data.pop('turb_viscosity_ratio', None)
-                data.pop('turb_hydraulic_diam', None)
-            case 'Intensity and Viscosity Ratio':
-                data.pop('turb_length_scale', None)
-                data.pop('turb_hydraulic_diam', None)
-            case 'Intensity and Hydraulic Diameter':
-                data.pop('turb_length_scale', None)
-                data.pop('turb_viscosity_ratio', None)
+        if turb_model in ['inviscid', 'lam']:
+            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
+                data.pop(key, None)
+        else:
+            match data['ke_spec']:
+                case 'Intensity and Length Scale':
+                    data.pop('turb_viscosity_ratio', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Viscosity Ratio':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Hydraulic Diameter':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_viscosity_ratio', None)
 
         return data
 
@@ -297,17 +305,21 @@ class PressureOutlet:
             ]:
                 data.pop(key, None)
         else:
-            data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
-            match data['ke_spec']:
-                case 'Intensity and Length Scale':
-                    data.pop('turb_viscosity_ratio', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Viscosity Ratio':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Hydraulic Diameter':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_viscosity_ratio', None)
+            if turb_model in ['inviscid', 'lam']:
+                for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
+                    data.pop(key, None)
+            else:
+                data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
+                match data['ke_spec']:
+                    case 'Intensity and Length Scale':
+                        data.pop('turb_viscosity_ratio', None)
+                        data.pop('turb_hydraulic_diam', None)
+                    case 'Intensity and Viscosity Ratio':
+                        data.pop('turb_length_scale', None)
+                        data.pop('turb_hydraulic_diam', None)
+                    case 'Intensity and Hydraulic Diameter':
+                        data.pop('turb_length_scale', None)
+                        data.pop('turb_viscosity_ratio', None)
 
         return data
 
@@ -342,13 +354,26 @@ class Wall:
     material: str = ''
 
     thermal_bc: str = ''
-    t: str = ''
-    q: str = ''
-    h: str = ''
+    q: str = ''         # heat flux
+    t: str = ''         # temperature
+    h: str = ''         # convection
+    tinf: str = ''      # convection
+    ex_emiss: str = ''  # radiation
+    trad: str = ''      # radiation
 
     planar_conduction: str = ''
     shell_conduction: str = ''
     # endregion thermal
+
+    THERMAL_BC = {
+        '0': 'Heat Flux',
+        '1': 'Temperature',
+        '2': 'Convection',
+        '3': 'Coupled',
+        '4': 'Radiation',
+        '5': 'Mixed',
+        '8': 'via System Coupling',
+    }
 
     def to_dict(self, turb_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
@@ -358,26 +383,68 @@ class Wall:
 
         match data['thermal_bc']:
             case 'Heat Flux':
-                data.pop('t', None)
-                data.pop('q', None)
-                data.pop('h', None)
+                for key in ['t', 'h', 'tinf', 'ex_emiss', 'trad']:
+                    data.pop(key, None)
             case 'Temperature':
-                data.pop('q_dot', None)
-                data.pop('q', None)
-                data.pop('h', None)
-            case 'Coupled':
-                for key in ['q_dot', 't', 'q', 'h']:
+                for key in ['q', 'h', 'tinf', 'ex_emiss', 'trad']:
+                    data.pop(key, None)
+            case 'Convection':
+                for key in ['q', 't', 'ex_emiss', 'trad']:
+                    data.pop(key, None)
+            case 'Coupled' | 'via System Coupling':
+                for key in ['q', 't', 'h', 'tinf', 'ex_emiss', 'trad']:
+                    data.pop(key, None)
+            case 'Radiation':
+                for key in ['q', 't', 'h', 'tinf']:
+                    data.pop(key, None)
+            case 'Mixed':
+                for key in ['q', 't']:
                     data.pop(key, None)
 
         if data['planar_conduction'] == '#f':
             data.pop('shell_conduction', None)
 
-        if turb_model in ('inviscid', 'lam'):
+        if turb_model in ['inviscid', 'lam']:
             data.pop('rough_bc', None)
             data.pop('roughness_height', None)
             data.pop('roughness_const', None)
 
         return data
+
+
+@dataclass
+@BoundaryFactory.register('intake-fan')
+class IntakeFan:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('exhaust-fan')
+class ExhaustFan:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('inlet-vent')
+class InletVent:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('outlet-vent')
+class OutletVent:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('pressure-far-field')
+class PressureFarField:
+    name: str
+    id_: str
 
 
 @dataclass
@@ -414,6 +481,13 @@ class Interior:
 @dataclass
 @BoundaryFactory.register('interface')
 class Interface:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('overset')
+class Overset:
     name: str
     id_: str
 
