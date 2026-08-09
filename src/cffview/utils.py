@@ -44,54 +44,96 @@ DISCRETIZATION_SCHEME = {
     "31": "Low Diffusion Central",
 }
 
-FLUENT_BOUNDARY_TYPES = {
-    2: "interior",
-    3: "wall",
-    4: "inlet-vent",
-    4: "pressure-inlet",
-    4: "intake-fan",
-    5: "pressure-outlet",
-    5: "outlet-vent",
-    5: "exhaust-fan",
-    7: "symmetry",
-    9: "pressure-far-field",
-    10: "velocity-inlet",
-    14: "radiator",
-    14: "fan",
-    14: "porous-jump",
-    20: "mass-flow-inlet",
-    20: "mass-flow-outlet",
-    24: "interface",
-    25: "overset",
-    36: "outflow",
-    37: "axis",
+FACE_ZONE_TYPE_GROUPS = {
+    -1: ["invalid"],
+    1: ["fluid"],
+    2: ["interior", "rans-les-interface"],
+    3: ["wall"],
+    4: ["pressure-inlet", "intake-fan", "inlet-vent"],
+    5: ["pressure-outlet", "exhaust-fan", "outlet-vent"],
+    7: ["symmetry", "degassing"],
+    8: ["shadow"],
+    9: ["pressure-far-field"],
+    10: ["velocity-inlet"],
+    12: ["periodic"],
+    14: ["fan", "radiator", "porous-jump"],
+    20: ["mass-flow-inlet", "mass-flow-outlet", "recirculation-inlet", "recirculation-outlet"],
+    24: ["interface"],
+    25: ["overset"],
+    36: ["outflow"],
+    37: ["axis"],
+    51: ["network"],
+    52: ["network-end"],
+    61: ["solid"],
+    101: ["user-defined"],
 }
 
 CELL_TYPES = {
-    1: "Triangle",
-    2: "Tetrahedron",
-    3: "Quadrilateral",
-    4: "Hexahedral",
-    5: "Pyramid",
-    6: "Wedge",
-    7: "Polyhedron",
+    -1: "invalid",
+    0: "mixed",
+    1: "triangle",         # 3 nodes, 3 faces (2D)
+    2: "tetrahedron",      # 4 nodes, 4 faces
+    3: "quadrilateral",    # 4 nodes, 4 faces (2D)
+    4: "hexahedron",       # 8 nodes, 6 faces
+    5: "pyramid",          # 5 nodes, 5 faces
+    6: "wedge",            # 6 nodes, 5 faces (prism)
+    7: "polyhedron",       # arbitrary nodes/faces
+    8: "ghost",            # 2 nodes, 1 face (2D only)
+    9: "tetrahedron-10",   # 10 nodes, 4 faces (quadratic tet)
 }
 
-KEYBOARD_SHORTCUTS = {
-    'q': 'Close the rendering window',
-    'f': 'Focus and zoom in on a point',
-    'v': 'Isometric camera view',
-    'w': 'Switch all datasets to a wireframe representation',
-    'r': 'Reset the camera to view all datasets',
-    's': 'Switch all datasets to a surface representation',
-    'shift+click or middle-click' if not sys.platform.startswith('darwin') else 'shift+click': 'Pan the rendering scene',
-    'left-click' if not sys.platform.startswith('darwin') else 'cmd+click': 'Rotate the rendering scene in 3D',
-    'ctrl+click': 'Rotate the rendering scene in 2D(view-plane)',
-    'mouse-wheel or right-click' if not sys.platform.startswith('darwin') else 'ctl+click': 'Continuously zoom the rendering scene',
-    'shift+s': 'Save a screenshot(only on BackgroundPlotter)',
-    'shift+c': 'Enable interactive cell selection/picking',
-    'up/down': 'Zoom in and out',
-    '+ /-': 'Increase/decrease the point size and line widths',
+# Node/face counts per cell type
+CELL_TYPE_TOPOLOGY = {
+    "triangle": {"nodes": 3, "faces": 3},
+    "tetrahedron": {"nodes": 4, "faces": 4},
+    "quadrilateral": {"nodes": 4, "faces": 4},
+    "hexahedron": {"nodes": 8, "faces": 6},
+    "pyramid": {"nodes": 5, "faces": 5},
+    "wedge": {"nodes": 6, "faces": 5},
+    "polyhedron": {"nodes": None, "faces": None},
+    "ghost": {"nodes": 2, "faces": 1},
+    "tetrahedron-10": {"nodes": 10, "faces": 4},
+}
+
+FACE_TYPES = {
+    -1: "invalid",
+    0: "mixed",
+    2: "linear",      # 2 nodes, 0 edges
+    3: "triangle",    # 3 nodes, 3 edges
+    4: "quadrilateral",  # 4 nodes, 4 edges
+    5: "polygon",     # arbitrary nodes/edges
+    6: "triangle-6",  # quadratic triangle with 3 mid nodes
+}
+
+EDGE_TYPES = {
+    -1: "invalid",
+    0: "linear",     # 2 nodes
+    1: "linear-3",   # 3 nodes (quadratic)
+    2: "n-nodes",    # poly edge
+}
+
+NODE_ZONE_TYPES = {
+    -1: "invalid",
+    0: "mixed",
+    1: "interior",
+    2: "boundary",
+}
+
+EDGE_ZONE_TYPES = {
+    -1: "invalid",
+    0: "mixed",
+    1: "interior",
+    2: "boundary",
+}
+
+ZONE_CATEGORIES = {
+    -1: "invalid",
+    0: "node",
+    1: "edge",
+    2: "face",
+    3: "cell",
+    4: "particle",
+    5: "other",
 }
 
 DATA_KEYS = (
@@ -113,6 +155,24 @@ DATA_KEYS = (
     'SV_W',
     'SV_W_RG_AUX',
 )
+
+# PyVista plotter's default keyboard shortcuts
+KEYBOARD_SHORTCUTS = {
+    'q': 'Close the rendering window',
+    'f': 'Focus and zoom in on a point',
+    'v': 'Isometric camera view',
+    'w': 'Switch all datasets to a wireframe representation',
+    'r': 'Reset the camera to view all datasets',
+    's': 'Switch all datasets to a surface representation',
+    'shift+click or middle-click' if not sys.platform.startswith('darwin') else 'shift+click': 'Pan the rendering scene',
+    'left-click' if not sys.platform.startswith('darwin') else 'cmd+click': 'Rotate the rendering scene in 3D',
+    'ctrl+click': 'Rotate the rendering scene in 2D(view-plane)',
+    'mouse-wheel or right-click' if not sys.platform.startswith('darwin') else 'ctl+click': 'Continuously zoom the rendering scene',
+    'shift+s': 'Save a screenshot(only on BackgroundPlotter)',
+    'shift+c': 'Enable interactive cell selection/picking',
+    'up/down': 'Zoom in and out',
+    '+ /-': 'Increase/decrease the point size and line widths',
+}
 
 
 def print_colored_dict(data) -> None:
