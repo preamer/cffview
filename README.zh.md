@@ -1,5 +1,7 @@
 # cffview
 
+> CFF 是 Ansys **C**ommon **F**luids **F**ormat 的缩写。
+
 一个用于查看 Ansys Fluent `.cas.h5` / `.msh.h5` 文件的命令行工具，**无需打开 Fluent**。
 
 - 直接从 HDF5 文件中读取求解器设置、材料、边界条件、离散格式等信息。
@@ -50,7 +52,7 @@ cffview <文件> [选项]
 | `--contours` | 后处理云图配置 |
 | `--vectors` | 后处理矢量图配置 |
 | `--xy`, `--xy-plot` | 后处理xy图配置 |
-| `--save` | 将输出保存为 `<文件>.json` |
+| `--save` | 将输出保存为 `<文件名>.json` (`文件名`可选，默认与输入文件相同) |
 | `--plot` | 使用 matplotlib 绘制 outfile 文件|
 
 多个选项可以自由组合。算例设置类选项（`--solver`、`--mat` 等）仅适用于 `.cas.h5` 文件。

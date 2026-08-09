@@ -6,6 +6,8 @@
 
 # cffview
 
+> CFF is an abbreviation for Ansys **C**ommon **F**luids **F**ormat.
+
 A command-line tool for inspecting Ansys Fluent `.cas.h5` / `.msh.h5` files **without opening Fluent**.
 
 - Read solver settings, materials, boundary conditions, discretisation schemes, and more directly from the HDF5 file.
@@ -56,7 +58,7 @@ cffview <file> [options]
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
 | `--xy`, `--xy-plot` | Graphics xy-plot settings |
-| `--save` | Save the output to `<file>.json` |
+| `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
 | `--plot` | Plot the outfile with matplotlib |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.

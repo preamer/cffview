@@ -16,7 +16,7 @@ def print_version(file_path: str) -> None:
     """
     import h5py
 
-    with h5py.File(file_path, "r") as f:
+    with h5py.File(file_path) as f:
         print(f['/settings/Version'][0].decode())
 
 
@@ -717,7 +717,7 @@ def plot_outfile(file_path: str) -> None:
     Parameters
     ---------
     file_path : str
-        Path to the  outfile
+        Path to the outfile
     """
     import numpy as np
     import matplotlib.pyplot as plt
@@ -766,7 +766,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     parser.add_argument(
         "file_path",
         type=str,
-        help="path to the .h5 file",
+        help="path to the input file",
     )
     parser.add_argument(
         "--save",
