@@ -768,6 +768,13 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         type=str,
         help="path to the .h5 file",
     )
+    parser.add_argument(
+        "--save",
+        nargs="?",
+        default=False,
+        metavar="OUTPUT_FILE_NAME",
+        help="output file name (if not specified, the same as the input file)",
+    )
 
     ARGUMENTS = [
         (("--version",), "show the version of the .h5 file"),
@@ -786,10 +793,8 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
         (("--xy", "--xy-plot"), "show graphics xy-plot settings"),
-        (("--save",), "save output to file"),
         (("--plot",), "plot outfile"),
     ]
-
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
 
@@ -820,9 +825,10 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
             output = read_case(args.file_path, **kwargs)
             print_colored_dict(output)
 
-            if args.save:
+            if args.save is not False:
                 import json
-                with open(f"{args.file_path}.json", "w", encoding="utf-8") as f:
+                save_name = args.save if args.save else args.file_path
+                with open(f"{save_name}.json", "w", encoding="utf-8") as f:
                     json.dump(output, f, ensure_ascii=False, indent=4)
     elif args.plot:
         plot_outfile(args.file_path)
