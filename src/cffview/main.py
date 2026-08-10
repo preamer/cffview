@@ -575,9 +575,9 @@ def show_mesh(file_path: str) -> None:
             root_group: Group = f['/meshes/1']
             dimension: np.int32 = root_group.attrs['dimension'][0]
             nodeCount: np.uint64 = root_group.attrs['nodeCount'][0]
-            faceCount: np.uint64 = root_group.attrs['faceCount'][0]
             pv_points = np.zeros((nodeCount, 3), dtype=np.float64)
-            nnodes = np.zeros(faceCount, dtype=np.int16)
+
+            # nodes
             zoneTopology: Group = root_group['nodes/zoneTopology']
             nZones: np.uint64 = zoneTopology.attrs['nZones'][0]
             minId: Dataset = zoneTopology['minId']
@@ -587,23 +587,22 @@ def show_mesh(file_path: str) -> None:
             for i in range(nZones):
                 pv_points[minId[i] - 1: maxId[i], :dimension] = coords_group[f'{i + 1}'][:]
 
-            zoneTopology: Group = root_group['faces/zoneTopology']
-            minId: Dataset = zoneTopology['minId']
-            maxId: Dataset = zoneTopology['maxId']
-
+            # faces
+            # zoneTopology: Group = root_group['faces/zoneTopology']
+            # zoneType: Dataset = faces_zone_topo['zoneType']
             faces_nodes_group: Group = root_group['faces/nodes']
             nSections: np.uint64 = faces_nodes_group.attrs['nSections'][0]
+
+            nnodes_list, nodes_list = [], []
             for i in range(nSections):
+                # if (not include_interior) and int(zoneType[i]) == 2:
+                # continue
                 section_group: Group = faces_nodes_group[f"{i + 1}"]
-                nnodes[minId[i] - 1: maxId[i]] = section_group['nnodes'][:]
-            nodes_count = np.sum(nnodes)
-            nodes = np.zeros(nodes_count, dtype=np.uint32)
-            nodes_start_index = 0
-            for i in range(nSections):
-                section_group: Group = faces_nodes_group[f"{i + 1}"]
-                nodes_num = section_group['nodes'].size
-                nodes[nodes_start_index: nodes_start_index + nodes_num] = section_group['nodes'][:] - 1
-                nodes_start_index += nodes_num
+                nnodes_list.append(section_group['nnodes'][:])
+                nodes_list.append(section_group['nodes'][:] - 1)
+
+            nnodes = np.concatenate(nnodes_list)
+            nodes = np.concatenate(nodes_list)
             offsets = np.cumsum(nnodes) - nnodes
             pv_faces = np.insert(nodes, offsets, nnodes)
 
@@ -613,6 +612,7 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None,
         )
 
+    # region plotter
     pl = pv.Plotter()
     pl.enable_anti_aliasing()
 
@@ -708,7 +708,8 @@ def show_mesh(file_path: str) -> None:
 
     pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
     print_colored_dict(keyboard_shortcuts)
-    pl.show()
+    pl.show(title=file_path)
+    # endregion plotter
 
 
 def plot_outfile(file_path: str) -> None:
