@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
 
 jobs:
   release:
@@ -43,6 +42,5 @@ jobs:
         with:
           files: dist/*
           body: ${{ steps.changelog_reader.outputs.notes }}
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
