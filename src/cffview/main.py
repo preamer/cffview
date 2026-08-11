@@ -525,7 +525,7 @@ def read_case(file_path: str, **kwargs) -> dict[
             }
             data['vectors'][vector_dict['name']] = vector_dict
 
-    if kwargs['xy']:
+    if kwargs['xy_plot']:
         data['xy-plot'] = {}
         xy_plots = re.search(
             r'(\(graphics/xy-plot.*)',
@@ -727,37 +727,87 @@ def show_mesh(file_path: str) -> None:
     # endregion plotter
 
 
-def plot_outfile(file_path: str) -> None:
+def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
     """Plot Ansys Fluent report files
 
     Parameters
     ---------
     file_path : str
-        Path to the outfile
+        Path to the data file
+    out : bool
+        If True, plot .out data file
+    xy : bool
+        If True, plot .xy data file
     """
+    import re
     import numpy as np
     import matplotlib.pyplot as plt
 
-    with open(file_path, encoding='utf-8') as f:
-        for line_num, line in enumerate(f, start=1):
-            match line_num:
-                case 1:
-                    title = line.strip().strip('"')
-                case 2:
-                    _, *report_definitions = [s.strip('"') for s in line.strip().split()]
-                case 3:
-                    xlabel, *ylabels = [s.strip('"') for s in line.strip('( )').split()]
-                case _:
-                    break
+    def plot_out(file_path: str) -> None:
+        with open(file_path, encoding='utf-8') as f:
+            for line_num, line in enumerate(f, start=1):
+                match line_num:
+                    case 1:
+                        title = line.strip().strip('"')
+                    case 2:
+                        _, *report_definitions = [s.strip('"') for s in line.strip().split()]
+                    case 3:
+                        xlabel, *ylabels = [s.strip('"') for s in line.strip('( )').split()]
+                    case _:
+                        break
 
-    data = np.loadtxt(file_path, skiprows=3)
-    plt.figure()
-    plt.plot(data[:, 0], data[:, 1:])
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.legend(ylabels)
-    plt.grid()
-    plt.show()
+        data = np.loadtxt(file_path, skiprows=3)
+        plt.figure()
+        plt.plot(data[:, 0], data[:, 1:])
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.legend(ylabels)
+        plt.grid()
+        plt.show()
+
+    def plot_xy(file_path: str) -> None:
+        with open(file_path, encoding='utf-8') as f:
+            for line_num, line in enumerate(f, start=1):
+                match line_num:
+                    case 1:
+                        title = re.findall(r'"([^"]*)"', line)[0]
+                    case 2:
+                        x_axis_title, y_axis_title = re.findall(r'"([^"]*)"', line)
+                    case _:
+                        content = f.read()
+                        break
+        chunks = content.split('((xy/key/label "')[1:]
+        data = {}
+        for chunk in chunks:
+            label, rest = chunk.split('"', 1)
+            first_bracket = rest.find(")")
+            last_bracket = rest.rfind(")")
+            data_str = rest[first_bracket + 1: last_bracket]
+            arr_2d = np.fromstring(data_str, dtype=np.float64, sep=" ").reshape(-1, 2)
+            data[label] = arr_2d[arr_2d[:, 0].argsort()]
+
+        plt.figure()
+        for label, arr_2d in data.items():
+            plt.plot(arr_2d[:, 0], arr_2d[:, 1], label=label)
+        plt.title(title)
+        plt.xlabel(x_axis_title)
+        plt.ylabel(y_axis_title)
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+    if out:
+        plot_out(file_path)
+    elif xy:
+        plot_xy(file_path)
+    else:
+        file_ext = file_path.split('.')[-1]
+        if file_ext == 'out':
+            plot_out(file_path)
+        elif file_ext == 'xy':
+            plot_xy(file_path)
+        else:
+            raise ValueError("Please specify --out or --xy")
 
 
 def main() -> None:
@@ -809,8 +859,10 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--iter",), "show iteration settings"),
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
-        (("--xy", "--xy-plot"), "show graphics xy-plot settings"),
-        (("--plot",), "plot outfile"),
+        (("--xy-plot",), "show graphics xy-plot settings"),
+        (("--plot",), "plot data file, support .out and .xy"),
+        (("--out",), "plot .out file, used with --plot"),
+        (("--xy",), "plot .xy file, used with --plot"),
     ]
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
@@ -836,7 +888,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
             keys = [
                 'solver', 'mat', 'bd', 'ne', 'disc', 'rd', 'interfaces',
                 'plotsets', 'monitorsets', 'residuals', 'iter',
-                'contours', 'vectors', 'xy',
+                'contours', 'vectors', 'xy_plot',
             ]
             kwargs = {k: getattr(args, k) for k in keys}
             output = read_case(args.file_path, **kwargs)
@@ -848,4 +900,4 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
                 with open(f"{save_name}.json", "w", encoding="utf-8") as f:
                     json.dump(output, f, ensure_ascii=False, indent=4)
     elif args.plot:
-        plot_outfile(args.file_path)
+        plot(args.file_path, out=args.out, xy=args.xy)
