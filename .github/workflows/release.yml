@@ -17,6 +17,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Extract Release Notes from CHANGELOG
+        id: changelog_reader
+        uses: alexwilson/keep-a-changelog-action@v3
+        with:
+          version: ${{ github.ref_name }}
+          path: './CHANGELOG.md'
+
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -34,6 +41,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
+          body: ${{ steps.changelog_reader.outputs.notes }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
