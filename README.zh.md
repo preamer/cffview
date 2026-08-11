@@ -42,6 +42,7 @@ cffview <文件> [选项]
 | `--solver` | 求解器类型、时间类型、维度、精度、湍流模型、能量方程、辐射模型、重力 |
 | `--mat`, `--materials` | 材料属性 |
 | `--bd`, `--boundary` | 边界条件设置 |
+| `--interfaces` | 网格交界面设置 |
 | `--ne`, `--named-expressions` | 命名表达式 |
 | `--disc` | 离散格式和松弛因子 |
 | `--rd`, `--report-definitions` | 报告定义 |
@@ -67,8 +68,8 @@ cffview case.cas.h5 --save
 cffview case.cas.h5 --solver --bd
 
 # 可视化网格
-cffview case.cas.h5 --showmesh
-cffview mesh.msh.h5 --showmesh
+cffview case.cas.h5 --mesh
+cffview mesh.msh.h5
 
 # 查看文件对应的 Fluent 版本
 cffview case.cas.h5 --version

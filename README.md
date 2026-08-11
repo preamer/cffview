@@ -48,6 +48,7 @@ cffview <file> [options]
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
 | `--mat`, `--materials` | Material properties |
 | `--bd`, `--boundary` | Boundary condition settings |
+| `--interfaces` | Mesh interfaces settings |
 | `--ne`, `--named-expressions` | Named expressions |
 | `--disc` | Discretisation schemes and relaxation factors |
 | `--rd`, `--report-definitions` | Report definitions |
@@ -73,8 +74,8 @@ cffview case.cas.h5 --save
 cffview case.cas.h5 --solver --bd
 
 # Visualise the mesh
-cffview case.cas.h5 --showmesh
-cffview mesh.msh.h5 --showmesh
+cffview case.cas.h5 --mesh
+cffview mesh.msh.h5
 
 # Check the Fluent version of file
 cffview case.cas.h5 --version

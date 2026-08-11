@@ -255,6 +255,21 @@ def read_case(file_path: str, **kwargs) -> dict[
             )
             data['boundary'][type_] = b_list
 
+    if kwargs['interfaces']:
+        data['interfaces'] = {}
+        interfaces = re.search(
+            r'(\(sliding-interfaces\s+.*)',
+            general_info,
+            re.M
+        ).group(1)
+        interfaces: list[NestedStrList] = stringify_nested_list(sexpdata.loads(interfaces, true=None)[1])
+        for interface in interfaces:
+            name = interface[0]
+            data['interfaces'][name] = {
+                property_[0]: property_[2] if len(property_) == 3 else property_[1]
+                for property_ in filter(lambda x: len(x) > 1, interface[1:])
+            }
+
     if kwargs['ne']:
         data['named-expressions'] = {}
         nes = re.search(
@@ -784,6 +799,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--solver",), "show solver settings"),
         (("--mat", "--materials"), "show materials settings"),
         (("--bd", "--boundary"), "show boundary settings"),
+        (("--interfaces",), "show mesh interfaces settings"),
         (("--ne", "--named-expressions"), "show named-expressions settings"),
         (("--disc",), "show disc-scheme and relax-factor settings"),
         (("--rd", "--report-definitions"), "show report-definitions settings"),
@@ -818,7 +834,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         else:
             from .utils import print_colored_dict
             keys = [
-                'solver', 'mat', 'bd', 'ne', 'disc', 'rd',
+                'solver', 'mat', 'bd', 'ne', 'disc', 'rd', 'interfaces',
                 'plotsets', 'monitorsets', 'residuals', 'iter',
                 'contours', 'vectors', 'xy',
             ]
