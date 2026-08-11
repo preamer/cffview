@@ -470,6 +470,7 @@ class Radiator:
 class Interior:
     name: str
     id_: str
+    is_not_a_res_lans_interface: str = ''
 
 
 @dataclass
@@ -498,6 +499,20 @@ class Symmetry:
 class Axis:
     name: str
     id_: str
+
+
+@dataclass
+@BoundaryFactory.register('periodic')
+class Periodic:
+    name: str
+    id_: str
+    p_jump: str = ''
+    x_origin: str = ''
+    y_origin: str = ''
+    z_origin: str = ''
+    shift_x: str = ''
+    shift_y: str = ''
+    shift_z: str = ''
 
 
 @dataclass
