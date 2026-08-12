@@ -56,6 +56,7 @@ cffview <file> [options]
 | `--monitorsets` | Monitor sets |
 | `--residuals` | Residual settings |
 | `--iter` | Iteration / time-step settings |
+| `--surfaces` | Surfaces settings |
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
 | `--xy-plot` | Graphics xy-plot settings |

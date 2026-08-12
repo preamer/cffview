@@ -47,13 +47,16 @@ def read_case(file_path: str, **kwargs) -> dict[
 
     NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
 
+    if not any(kwargs.values()):  # all False, means `cffview case.cas.h5`, no extra params
+        kwargs = dict.fromkeys(kwargs.keys(), True)
+
     with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
         general_info = settings['Rampant Variables'][0].decode()
-        boundary_info = settings['Thread Variables'][0].decode()
-
-    if not any(kwargs.values()):
-        kwargs = dict.fromkeys(kwargs.keys(), True)
+        if kwargs['bd']:
+            boundary_info = settings['Thread Variables'][0].decode()
+        if kwargs['surfaces']:
+            cortex_info = settings['Cortex Variables'][0].decode()
 
     data = {}
 
@@ -459,6 +462,70 @@ def read_case(file_path: str, **kwargs) -> dict[
                     general_info
                 ).group(1)
 
+    if kwargs['surfaces']:
+        data['surfaces'] = {}
+
+        surfaces_groups = re.search(
+            r'(\(surfaces/groups.*)',
+            cortex_info,
+            re.M
+        ).group(1)
+        surfaces_groups: NestedStrList = stringify_nested_list(sexpdata.loads(surfaces_groups, true=None)[1])
+        name_id_map = {
+            surface[0]: surface[1][0]
+            for surface in surfaces_groups
+        }  # name -> id
+
+        surface_id_map = re.search(
+            r'(\(cx-surface-id-map.*)',
+            cortex_info,
+            re.M
+        ).group(1)
+        surface_id_map: NestedStrList = stringify_nested_list(sexpdata.loads(surface_id_map, true=None)[1])
+        id_virtual_id_map = {
+            id_group[0]: id_group[1]
+            for id_group in surface_id_map
+        }  # id -> virtual id
+
+        virtual_id_name_map = {
+            id_virtual_id_map[id_]: name
+            for name, id_ in name_id_map.items()
+        }  # virtual id -> name
+
+        surface_def_list = re.search(
+            r'(\(cx-surface-def-list.*)',
+            cortex_info,
+            re.M
+        ).group(1)
+        surface_def_list: NestedStrList = stringify_nested_list(sexpdata.loads(surface_def_list, true=None)[1])
+        for surface_def in surface_def_list:
+            surface = surface_def[2]
+            surface_type = surface[0]
+            match surface_type:
+                case 'line-surface':
+                    virtual_id = surface[1]
+                    data['surfaces'][virtual_id_name_map[virtual_id]] = {
+                        'type': surface_type,
+                        'start': surface[2],
+                        'end': surface[3],
+                    }
+                case 'plane-surface':
+                    virtual_id = surface[1]
+                    data['surfaces'][virtual_id_name_map[virtual_id]] = {
+                        'type': surface_type,
+                        'point 1': surface[2],
+                        'point 2': surface[3],
+                        'point 3': surface[4],
+                        'bounded': surface[5],
+                        'method': {
+                            'type': surface[6][0],
+                            'direction vector': surface[6][1],
+                            'reference point': surface[6][2],
+                        },
+                    }
+                case _:
+                    continue
+
     if kwargs['contours']:
         data['contours'] = {}
         contours = re.search(
@@ -743,16 +810,18 @@ def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
     import numpy as np
     import matplotlib.pyplot as plt
 
+    pattern = re.compile(r'"([^"]*)"')
+
     def plot_out(file_path: str) -> None:
         with open(file_path, encoding='utf-8') as f:
             for line_num, line in enumerate(f, start=1):
                 match line_num:
                     case 1:
-                        title = line.strip().strip('"')
+                        title = re.findall(pattern, line)[0]
                     case 2:
-                        _, *report_definitions = [s.strip('"') for s in line.strip().split()]
+                        _, *report_definitions = re.findall(pattern, line)
                     case 3:
-                        xlabel, *ylabels = [s.strip('"') for s in line.strip('( )').split()]
+                        xlabel, *ylabels = re.findall(pattern, line)
                     case _:
                         break
 
@@ -770,9 +839,9 @@ def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
             for line_num, line in enumerate(f, start=1):
                 match line_num:
                     case 1:
-                        title = re.findall(r'"([^"]*)"', line)[0]
+                        title = re.findall(pattern, line)[0]
                     case 2:
-                        x_axis_title, y_axis_title = re.findall(r'"([^"]*)"', line)
+                        x_axis_title, y_axis_title = re.findall(pattern, line)
                     case _:
                         content = f.read()
                         break
@@ -857,10 +926,11 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--monitorsets",), "show report-definitions monitorsets settings"),
         (("--residuals",), "show residuals settings"),
         (("--iter",), "show iteration settings"),
+        (("--surfaces",), "show surfaces settings"),
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
         (("--xy-plot",), "show graphics xy-plot settings"),
-        (("--plot",), "plot data file, support .out and .xy"),
+        (("--plot",), "plot data file, support --out and --xy, if not specified, infer from file extension"),
         (("--out",), "plot .out file, used with --plot"),
         (("--xy",), "plot .xy file, used with --plot"),
     ]
@@ -887,7 +957,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
             from .utils import print_colored_dict
             keys = [
                 'solver', 'mat', 'bd', 'ne', 'disc', 'rd', 'interfaces',
-                'plotsets', 'monitorsets', 'residuals', 'iter',
+                'plotsets', 'monitorsets', 'residuals', 'iter', 'surfaces',
                 'contours', 'vectors', 'xy_plot',
             ]
             kwargs = {k: getattr(args, k) for k in keys}

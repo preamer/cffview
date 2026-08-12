@@ -50,6 +50,7 @@ cffview <文件> [选项]
 | `--monitorsets` | 监控集配置 |
 | `--residuals` | 残差设置 |
 | `--iter` | 迭代步数 / 时间步设置 |
+| `--surfaces` | 面、线、等值面等设置 |
 | `--contours` | 后处理云图配置 |
 | `--vectors` | 后处理矢量图配置 |
 | `--xy-plot` | 后处理xy图配置 |
