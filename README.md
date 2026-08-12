@@ -58,9 +58,11 @@ cffview <file> [options]
 | `--iter` | Iteration / time-step settings |
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
-| `--xy`, `--xy-plot` | Graphics xy-plot settings |
+| `--xy-plot` | Graphics xy-plot settings |
 | `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
-| `--plot` | Plot the outfile with matplotlib |
+| `--plot` | plot data file, support --out and --xy, if not specified, infer from file extension |
+| `--out` | plot `.out` file, used with --plot |
+| `--xy` | plot `.xy` file, used with --plot |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
 
