@@ -236,10 +236,13 @@ def print_colored_dict(data) -> None:
 
 
 def stringify_nested_list(lst):
-    return [
-        stringify_nested_list(item) if isinstance(item, list) else str(item)
-        for item in lst
-    ]
+    from sexpdata import Quoted
+    result = []
+    for item in lst:
+        if isinstance(item, Quoted):
+            item = item.x  # unwrap Quoted to its inner value
+        result.append(stringify_nested_list(item) if isinstance(item, list) else str(item))
+    return result
 
 
 @contextmanager
