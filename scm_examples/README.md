@@ -1,1 +1,0 @@
-Some `*.scm` files extracted from `*.cas.h5` file for understanding the main logic of `read_case` function.
