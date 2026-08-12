@@ -22,9 +22,9 @@ def print_version(file_path: str) -> None:
 
 def read_case(file_path: str, **kwargs) -> dict[
     Literal[
-        'solver', 'materials', 'boundary', 'named-expressions',
+        'solver', 'materials', 'boundary', 'interfaces', 'named-expressions',
         'disc-scheme', 'report-definitions', 'plotsets', 'monitorsets',
-        'residuals', 'iter', 'contours', 'vectors', 'xy-plot',
+        'residuals', 'iter', 'surfaces', 'contours', 'vectors', 'xy-plot',
     ],
     dict[str]
 ]:
@@ -617,7 +617,7 @@ def read_case(file_path: str, **kwargs) -> dict[
 
 
 def extract_h5(file_path: str) -> None:
-    """Extract cas.h5 general and boundary string to files
+    """Extract cas.h5 general, boundary and cortex strings to files
 
     Parameters
     ---------
@@ -629,10 +629,13 @@ def extract_h5(file_path: str) -> None:
         settings: h5py.Group = f['/settings']
         general_info = settings['Rampant Variables'][0].decode()
         boundary_info = settings['Thread Variables'][0].decode()
+        cortex_info = settings['Cortex Variables'][0].decode()
     with open('general.scm', 'w', encoding='utf-8') as f:
         f.write(general_info)
     with open('boundary.scm', 'w', encoding='utf-8') as f:
         f.write(boundary_info)
+    with open('cortex.scm', 'w', encoding='utf-8') as f:
+        f.write(cortex_info)
 
 
 def show_mesh(file_path: str) -> None:
@@ -795,7 +798,7 @@ def show_mesh(file_path: str) -> None:
 
 
 def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
-    """Plot Ansys Fluent report files
+    """Plot Ansys Fluent export data files
 
     Parameters
     ---------

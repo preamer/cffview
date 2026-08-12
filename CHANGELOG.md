@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `--out` and `--xy` for plotting corresponding data files used with `--plot`.
 - `--surfaces` for showing surfaces settings.
+- Add the functionality to extract cortex_info to the extract_h5 function.
 
 ### Removed
 
