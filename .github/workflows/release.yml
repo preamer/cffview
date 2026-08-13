@@ -21,8 +21,8 @@ jobs:
         id: changelog_reader
         uses: release-flow/keep-a-changelog-action@v3
         with:
-          version: ${{ github.ref_name }}
-          path: './CHANGELOG.md'
+          command: query
+          version: latest
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -41,6 +41,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
-          body: ${{ steps.changelog_reader.outputs.notes }}
+          body: ${{ steps.changelog_reader.outputs.release-notes }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
