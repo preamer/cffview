@@ -45,6 +45,7 @@ cffview <file> [options]
 | `--version` | Print the Fluent version of file |
 | `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
 | `--mesh`, `--showmesh` | Visualise the mesh interactively with PyVista |
+| `--data`, `--plotdata` | Plot the data interactively with PyVista (may not work, depending on `vtkFLUENTCFFReader`) |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
 | `--mat`, `--materials` | Material properties |
 | `--bd`, `--boundary` | Boundary condition settings |
@@ -61,9 +62,9 @@ cffview <file> [options]
 | `--vectors` | Graphics vectors settings |
 | `--xy-plot` | Graphics xy-plot settings |
 | `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
-| `--plot` | plot data file, support --out and --xy, if not specified, infer from file extension |
-| `--out` | plot `.out` file, used with --plot |
-| `--xy` | plot `.xy` file, used with --plot |
+| `--plot` | plot data file, support `--out` and `--xy`, if not specified, infer from file extension |
+| `--out` | plot `.out` file, used with `--plot` |
+| `--xy` | plot `.xy` file, used with `--plot` |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
 
@@ -79,6 +80,9 @@ cffview case.cas.h5 --solver --bd
 # Visualise the mesh
 cffview case.cas.h5 --mesh
 cffview mesh.msh.h5
+
+# Visualise the data
+cffview case.cas.h5 --data
 
 # Check the Fluent version of file
 cffview case.cas.h5 --version

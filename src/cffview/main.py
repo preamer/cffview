@@ -647,9 +647,10 @@ def show_mesh(file_path: str) -> None:
         Path to the .h5 file
     """
     import pyvista as pv
-    from .utils import KEYBOARD_SHORTCUTS, print_colored_dict, disable_dat_file
+    from .plotter import MeshPlotter
 
     if file_path.endswith('cas.h5'):
+        from .utils import disable_dat_file
         with disable_dat_file(file_path):
             mesh = pv.read(file_path)
     elif file_path.endswith('msh.h5'):
@@ -697,104 +698,8 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None,
         )
 
-    # region plotter
-    pl = pv.Plotter()
-    pl.enable_anti_aliasing()
-
-    mesh = mesh.combine() if isinstance(mesh, pv.MultiBlock) else mesh
-    mesh_actor = pl.add_mesh(
-        mesh,
-        show_edges=True,
-        line_width=5 if locals().get('dimension') == 2 else None,
-    )
-
-    opacity_slider_widget = pl.add_slider_widget(
-        lambda value: setattr(mesh_actor.prop, 'opacity', value),
-        rng=(0.1, 1.0),
-        value=1.0,
-        title="Opacity",
-        style="modern",
-        pointa=(0.55, 0.93),
-        pointb=(0.95, 0.93),
-        slider_width=0.03,
-        tube_width=0.03,
-        title_height=0.03,
-    )
-
-    # Monkey patch to fix clip plane error
-    if isinstance(mesh, pv.UnstructuredGrid):
-        from pyvista import _vtk
-        _vtk._CORE_MODULES['vtkFiltersGeneral'] = (*_vtk._CORE_MODULES['vtkFiltersGeneral'], 'vtkClipDataSet')
-        _vtk._VTK_CLASS_TO_MODULE = {
-            cls: module
-            for module, classes in (_vtk._CORE_MODULES | _vtk._PLOTTING_MODULES | _vtk._OPENGL_MODULES).items()
-            for cls in classes
-        }
-        _vtk.vtkTableBasedClipDataSet = _vtk.vtkClipDataSet
-
-    mesh_clip_plane_actor = pl.add_mesh_clip_plane(mesh, show_edges=True)
-    mesh_clip_plane_actor.visibility = False
-    clip_plane = pl.widgets.plane_widgets[-1]
-    clip_plane.Off()
-
-    def toggle_slice(state):
-        if state:
-            mesh_actor.visibility = False
-            opacity_slider_widget.Off()
-            mesh_clip_plane_actor.visibility = True
-            clip_plane.On()
-        else:
-            mesh_actor.visibility = True
-            opacity_slider_widget.On()
-            mesh_clip_plane_actor.visibility = False
-            clip_plane.Off()
-
-    clip_plane_check_box = pl.add_checkbox_button_widget(
-        callback=toggle_slice,
-        value=False,
-        position=(10, 10),
-        size=40,
-    )
-    clip_plane_check_box.callback = toggle_slice
-    pl.add_text("Clip Plane", position=(60, 20), font_size=10)
-
-    def toggle_grid(state):
-        pl.show_grid(font_size=10, fmt='%.2f') if state else pl.remove_bounds_axes()
-
-    show_grid_check_box = pl.add_checkbox_button_widget(
-        callback=toggle_grid,
-        value=False,
-        position=(10, 55),
-        size=40,
-    )
-    show_grid_check_box.callback = toggle_grid
-    pl.add_text("Show Grid", position=(60, 65), font_size=10)
-
-    def on_key_press(key_name: str):
-        def reverse_state(button_widget):
-            rep = button_widget.GetButtonRepresentation()
-            new_state = not bool(rep.GetState())
-            rep.SetState(new_state)
-            button_widget.callback(new_state)
-
-        match key_name:
-            case 'c':
-                reverse_state(clip_plane_check_box)
-            case 'g':
-                reverse_state(show_grid_check_box)
-
-    pl.add_key_event('c', lambda: on_key_press('c'))
-    pl.add_key_event('g', lambda: on_key_press('g'))
-    keyboard_shortcuts = {
-        **KEYBOARD_SHORTCUTS,
-        'c': 'Toggle Clip Plane',
-        'g': 'Toggle Grid',
-    }
-
-    pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
-    print_colored_dict(keyboard_shortcuts)
-    pl.show(title=file_path)
-    # endregion plotter
+    plotter = MeshPlotter(mesh)
+    plotter.show(title=file_path)
 
 
 def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
@@ -882,6 +787,44 @@ def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
             raise ValueError("Please specify --out or --xy")
 
 
+def plot_data(file_path: str):
+    """Visualize Fluent .cas.h5 + .dat.h5 solution data with interactive cross-sections.
+
+    Uses PyVista's built-in VTK FLUENTCFF Reader to load both mesh and solution data
+    from .cas.h5 and .dat.h5 files. Provides an interactive plane widget for creating
+    cross-sections (slices) with selectable field variables and color mapping.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the .cas.h5 file. The corresponding .dat.h5 file must be in the same
+        directory with the same base name (e.g. ``case.cas.h5`` -> ``case.dat.h5``).
+    """
+    import os
+    import pyvista as pv
+    from .plotter import DataPlotter
+
+    if not os.path.exists(file_path.replace('.cas.h5', '.dat.h5')):
+        print("No .dat.h5 file found.")
+        print("Make sure the .dat.h5 file exists alongside the .cas.h5 file.")
+        return
+
+    mesh = pv.read(file_path)
+    var_names = (
+        'SV_P',
+        'SV_T',
+        'SV_DENSITY',
+        'SV_U', 'SV_V', 'SV_W',
+        'SV_H',
+    )
+    print(f"{len(var_names)} variable(s) available:")
+    for i, name in enumerate(var_names):
+        print(f"    [{i}] {name}")
+
+    plotter = DataPlotter(mesh, var_names)
+    plotter.show(title=file_path)
+
+
 def main() -> None:
     import argparse
 
@@ -892,7 +835,7 @@ def main() -> None:
 / /__/ __/ __/| |/ / /  __/ |/ |/ /
 \___/_/ /_/   |___/_/\___/|__/|__/
 
-A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening Fluent
+A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without opening Fluent
 """
 
     parser = argparse.ArgumentParser(
@@ -918,6 +861,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
         (("--version",), "show the version of the .h5 file"),
         (("--extract",), "extract cas.h5 general and boundary string to files"),
         (("--mesh", "--showmesh",), "show mesh using pyvista"),
+        (("--data", "--plotdata",), "plot data using pyvista"),
         (("--solver",), "show solver settings"),
         (("--mat", "--materials"), "show materials settings"),
         (("--bd", "--boundary"), "show boundary settings"),
@@ -956,6 +900,8 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5 files without opening 
     elif args.file_path.endswith(".cas.h5"):
         if args.mesh:
             show_mesh(args.file_path)
+        elif args.data:
+            plot_data(args.file_path)
         else:
             from .utils import print_colored_dict
             keys = [
