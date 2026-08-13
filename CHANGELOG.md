@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-08-14
+
 ### Added
 
 - `--out` and `--xy` for plotting corresponding data files used with `--plot`.
@@ -16,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Refactor plotter function using `MeshPlotter` and `DataPlotter`.
+- Refactor plotter function with `MeshPlotter` and `DataPlotter`.
 
 ### Removed
 
