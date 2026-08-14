@@ -243,11 +243,16 @@ def read_case(file_path: str, **kwargs) -> dict[
                             source_terms_list = property_[1:]
                             value = {}
                             for source_term in filter(lambda x: len(x) > 1, source_terms_list):
-                                value[source_term[0]] = {}
+                                eq = source_term[0]
+                                value[eq] = {}
                                 source_property = source_term[1]
-                                for source_property_ in filter(lambda x: x[1] == '.', source_property):
-                                    value[source_term[0]][source_property_[0]] = source_property_[2]
-                            setattr(new_boundary, property_name, value)
+                                for source_property_ in filter(lambda x: len(x) == 3, source_property):
+                                    property_name: str = source_property_[0]
+                                    if property_name == 'profile':
+                                        value[eq][property_name] = f'{source_property_[1]}/{source_property_[2]}'
+                                    elif source_property_[1] == '.':
+                                        value[eq][property_name] = source_property_[2]
+                            setattr(new_boundary, 'source_terms', value)
                         else:
                             setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
 
