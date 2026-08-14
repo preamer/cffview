@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--dat` for plotting `.dat.h5` file's residuals data used with `--plot`. 
+
 ### Fixed
 
 - `source_terms` udf parsing error for `Solid` and `Fluid` boundary

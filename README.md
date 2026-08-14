@@ -65,6 +65,7 @@ cffview <file> [options]
 | `--plot` | plot data file, support `--out` and `--xy`, if not specified, infer from file extension |
 | `--out` | plot `.out` file, used with `--plot` |
 | `--xy` | plot `.xy` file, used with `--plot` |
+| `--dat` | plot `.dat.h5` file's residuals data, used with `--plot` |
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
 

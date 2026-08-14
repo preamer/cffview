@@ -707,7 +707,7 @@ def show_mesh(file_path: str) -> None:
     plotter.show(title=file_path)
 
 
-def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
+def plot(file_path: str, out: bool = False, xy: bool = False, dat: bool = False) -> None:
     """Plot Ansys Fluent export data files
 
     Parameters
@@ -718,6 +718,8 @@ def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
         If True, plot .out data file
     xy : bool
         If True, plot .xy data file
+    dat : bool
+        If True, plot .dat.h5 residuals data
     """
     import re
     import numpy as np
@@ -778,18 +780,51 @@ def plot(file_path: str, out: bool = False, xy: bool = False) -> None:
         plt.grid()
         plt.show()
 
+    def plot_dat(file_path: str) -> None:
+        from h5py import File, Group
+
+        data = {}
+
+        with File(file_path) as f:
+            residuals: Group = f['/results/residuals']
+            for phase_name, phase_group in residuals.items():
+                data[phase_name] = {}
+                for eq_name, eq_group in phase_group.items():
+                    data[phase_name][eq_name] = {
+                        'data': eq_group['data'][:, 0] / eq_group['data'][:, 1],
+                        'iterations': eq_group['iterations'][:]
+                    }
+        phase_num = len(data)
+
+        plt.figure()
+        for i, (phase_name, phase_dict) in enumerate(data.items(), start=1):
+            plt.subplot(1, phase_num, i)
+            for eq_name, eq_dict in phase_dict.items():
+                plt.plot(eq_dict['iterations'], eq_dict['data'], label=eq_name)
+            plt.xlabel('iterations')
+            plt.ylabel('residuals')
+            plt.yscale('log')
+            plt.title(phase_name)
+            plt.legend()
+            plt.grid()
+        plt.show()
+
     if out:
         plot_out(file_path)
     elif xy:
         plot_xy(file_path)
+    elif dat:
+        plot_dat(file_path)
     else:
         file_ext = file_path.split('.')[-1]
         if file_ext == 'out':
             plot_out(file_path)
         elif file_ext == 'xy':
             plot_xy(file_path)
+        elif file_path.endswith('.dat.h5'):
+            plot_dat(file_path)
         else:
-            raise ValueError("Please specify --out or --xy")
+            raise ValueError("Please specify --out, --xy or --dat")
 
 
 def plot_data(file_path: str):
@@ -885,6 +920,7 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without 
         (("--plot",), "plot data file, support --out and --xy, if not specified, infer from file extension"),
         (("--out",), "plot .out file, used with --plot"),
         (("--xy",), "plot .xy file, used with --plot"),
+        (("--dat",), "plot .dat.h5 file's residuals, used with --plot"),
     ]
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
@@ -924,4 +960,4 @@ A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without 
                 with open(f"{save_name}.json", "w", encoding="utf-8") as f:
                     json.dump(output, f, ensure_ascii=False, indent=4)
     elif args.plot:
-        plot(args.file_path, out=args.out, xy=args.xy)
+        plot(args.file_path, out=args.out, xy=args.xy, dat=args.dat)
