@@ -2,10 +2,10 @@
 
 > CFF 是 Ansys **C**ommon **F**luids **F**ormat 的缩写。
 
-一个用于查看 Ansys Fluent `.cas.h5` / `.msh.h5` 文件的命令行工具，**无需打开 Fluent**。
+一个用于查看 Ansys Fluent `.cas.h5` / `.msh.h5` / `.dat.h5` 文件的命令行工具，**无需打开 Fluent**。
 
 - 直接从 HDF5 文件中读取求解器设置、材料、边界条件、离散格式等信息。
-- 使用 [PyVista](https://pyvista.org) 可视化网格。
+- 使用 [PyVista](https://pyvista.org) 可视化网格或计算结果。
 
 ## 安装
 
@@ -75,7 +75,7 @@ cffview case.cas.h5 --solver --bd
 cffview case.cas.h5 --mesh
 cffview mesh.msh.h5
 
-# 可视化数据
+# 可视化计算结果
 cffview case.cas.h5 --data
 
 # 查看文件对应的 Fluent 版本
