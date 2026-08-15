@@ -1,3 +1,11 @@
+"""Command-line interface for cffview.
+
+Entry point of the ``cffview`` console script: parses CLI arguments, prints
+the Fluent version, extracts raw Scheme strings, plots data files, and
+visualises meshes or data with PyVista. Reading case settings is delegated
+to :func:`cffview.reader.read_case`.
+"""
+
 def print_version(file_path: str) -> None:
     """Get the version of the .h5 file
 

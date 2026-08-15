@@ -1,3 +1,12 @@
+"""Boundary condition data classes for Ansys Fluent case files.
+
+Defines the boundary condition dataclasses (:class:`VelocityInlet`,
+:class:`MassFlowInlet`, ...) produced by :func:`cffview.reader.read_case`,
+together with :class:`BoundaryFactory` for creating them from the raw
+Scheme ``Thread Variables`` and :class:`BoundaryConsts` for mapping numeric
+codes to readable strings.
+"""
+
 from dataclasses import dataclass, field
 
 

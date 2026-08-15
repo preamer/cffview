@@ -1,3 +1,10 @@
+"""Interactive PyVista visualisation of Fluent meshes and data.
+
+:class:`MeshPlotter` shows the geometry of a ``.cas.h5`` / ``.msh.h5`` file,
+while :class:`DataPlotter` visualises cell data from a ``.dat.h5`` file with
+variable switching, opacity and clip-plane widgets.
+"""
+
 from functools import wraps
 
 from pyvista import _vtk, Plotter, MultiBlock, PolyData, UnstructuredGrid

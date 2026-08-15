@@ -1,3 +1,10 @@
+"""Shared constants and helper utilities for cffview.
+
+Ansys Fluent constant tables (discretisation schemes, zone/cell/face types),
+coloured JSON printing, Scheme-to-string conversion, and file helpers used
+across the cffview modules.
+"""
+
 import sys
 from contextlib import contextmanager
 
