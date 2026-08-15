@@ -703,7 +703,7 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None,
         )
 
-    plotter = MeshPlotter(mesh)
+    plotter = MeshPlotter(mesh, locals().get('dimension'))
     plotter.show(title=file_path)
 
 

@@ -71,27 +71,29 @@ class BasePlotter:
         )
         return grid_cb
 
-    def _add_keyboard_shortcuts(self, key_widget_mapping: dict[str]):
+    def _add_keyboard_shortcuts(self, key_widget_dict: dict[str, tuple[_vtk.vtkButtonWidget | _vtk.vtkSliderWidget, str]]):
         def reverse(checkbox_button_widget: _vtk.vtkButtonWidget):
-            rep = checkbox_button_widget.GetButtonRepresentation()
-            new_state = not bool(rep.GetState())
-            rep.SetState(new_state)
+            rep = checkbox_button_widget.button_representation
+            new_state = not rep.state
+            rep.state = new_state
             checkbox_button_widget.callback(new_state)
 
         def set_value(slider_widget: _vtk.vtkSliderWidget, new_value: int):
-            slider_widget.GetSliderRepresentation().SetValue(new_value)
+            slider_widget.slider_representation.value = new_value
             slider_widget.callback(new_value)
 
-        for key, widget in key_widget_mapping.items():
+        for key, (widget, help_info) in key_widget_dict.items():
             if isinstance(widget, _vtk.vtkButtonWidget):
                 self.pl.add_key_event(key, lambda w=widget: reverse(w))
             elif isinstance(widget, _vtk.vtkSliderWidget):
                 self.pl.add_key_event(key, lambda w=widget, v=int(key): set_value(w, v))
+            self.keyboard_shortcuts[key] = help_info
 
 
 class MeshPlotter(BasePlotter):
-    def __init__(self, mesh):
+    def __init__(self, mesh, dimension: int = None):
         super().__init__(mesh)
+        self.dimension = dimension
         self.mesh_actor = self._add_mesh()
         self.opacity_slider_widget = self._add_opcatity_slider()
         self._add_mesh_clip_plane()
@@ -99,21 +101,16 @@ class MeshPlotter(BasePlotter):
         self.grid_cb = self._add_grid_cb()
         self._add_keyboard_shortcuts(
             {
-                'c': self.clip_plane_cb,
-                'g': self.grid_cb
+                'c': (self.clip_plane_cb, 'Clip Plane'),
+                'g': (self.grid_cb, 'Toggle Grid')
             }
         )
-        self.keyboard_shortcuts = {
-            **KEYBOARD_SHORTCUTS,
-            'c': 'Clip Plane',
-            'g': 'Toggle Grid',
-        }
 
     def _add_mesh(self):
         mesh_actor = self.pl.add_mesh(
             self.mesh,
             show_edges=True,
-            line_width=5 if locals().get('dimension') == 2 else None,
+            line_width=5 if self.dimension == 2 else None,
         )
         return mesh_actor
 
@@ -175,23 +172,14 @@ class DataPlotter(BasePlotter):
         self.grid_cb = self._add_grid_cb()
         self._add_keyboard_shortcuts(
             {
-                'c': self.clip_plane_cb,
-                'g': self.grid_cb,
+                'c': (self.clip_plane_cb, 'Clip Plane'),
+                'g': (self.grid_cb, 'Toggle Grid'),
                 **{
-                    str(index): self.scalar_slider
+                    str(index): (self.scalar_slider, f'Show {self.var_names[index]}')
                     for index in range(len(self.var_names))
                 },
             }
         )
-        self.keyboard_shortcuts = {
-            **KEYBOARD_SHORTCUTS,
-            'c': 'Clip Plane',
-            'g': 'Toggle Grid',
-            **{
-                str(index): f'Show {self.var_names[index]}'
-                for index in range(len(self.var_names))
-            },
-        }
 
     def _add_scalar_slider_widget(self):
         def change_scalar(value: float):
