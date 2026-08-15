@@ -875,7 +875,7 @@ def main() -> None:
 / /__/ __/ __/| |/ / /  __/ |/ |/ /
 \___/_/ /_/   |___/_/\___/|__/|__/
 
-A Python CLI tool to inspect Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without opening Fluent
+A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without opening Fluent
 """
 
     parser = argparse.ArgumentParser(
