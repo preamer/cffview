@@ -11,7 +11,7 @@
 A command-line tool for viewing Ansys Fluent `.cas.h5` / `.msh.h5` / `.dat.h5` files **without opening Fluent**.
 
 - Read solver settings, materials, boundary conditions, discretisation schemes, and more directly from the HDF5 file.
-- Visualise the mesh or data with [PyVista](https://pyvista.org).
+- Visualise mesh or data with [PyVista](https://pyvista.org).
 
 ## Installation
 
