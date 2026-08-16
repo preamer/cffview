@@ -7,8 +7,8 @@ requested readers and merges their results.
 """
 
 import re
-from functools import lru_cache
 from dataclasses import dataclass
+from functools import lru_cache, singledispatch
 from typing import Any, Callable, TypeAlias, Union
 
 import sexpdata
@@ -88,12 +88,32 @@ def _get_radiation_model(general: str) -> str:
     return 'false'
 
 
-def _sel_expr(general: str, name: str) -> str:
+@singledispatch
+def _sel_expr(arg, *args) -> str:
+    """Unsupported first-argument type for :func:`_sel_expr`."""
+    raise TypeError(f'Unsupported argument type for _sel_expr: {type(arg).__name__}')
+
+
+@_sel_expr.register(str)
+def _(general: str, name: str) -> str:
     """Combine the ``-sel`` and ``-expr`` values of a setting into ``sel/expr``."""
     sel = re.search(rf'\({name}-sel\s+"([^"]+)"\)', general).group(1)
     expr = re.search(rf'\({name}-expr\s+"([^"]+)"\)', general).group(1)
     return f'{sel}/{expr}'
 
+
+@_sel_expr.register(list)
+def _(lst: list[str]) -> str:
+    """Get sel/expr pair in list like ['constant', '.', '1'], ['profile', '12'], ..."""
+    if len(lst) == 3 and lst[1] == '.':
+        return f'{lst[0]}/{lst[2]}'
+    elif len(lst) == 2:
+        return f'{lst[0]}/{lst[1]}'
+    elif len(lst) > 1:
+        rest = str(list(lst[1:])).strip('[]')
+        return f'{lst[0]}/{rest}'
+    else:
+        return lst[0]
 
 # ------------------------------------------------------------------- solver
 
@@ -185,9 +205,9 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
                     for p in property_value_list[1:]:
                         orth_property_name = p[0]
                         if orth_property_name in ['direction-0', 'direction-1', 'direction-2']:
-                            value[orth_property_name] = str(p[1:]).strip('[]')
+                            value[orth_property_name] = [int(i) for i in p[1:]]
                         elif orth_property_name in ['k0', 'k1', 'k2']:
-                            value[orth_property_name] = f'{sexpdata.car(p[1])}/{sexpdata.cdr(p[1])}'
+                            value[orth_property_name] = _sel_expr(p[1])
                     data[name][property_name] = {property_value_list[0]: value}
                 else:
                     value = ' '.join(str(p) for p in property_value_list[1:])
