@@ -94,6 +94,58 @@ class BoundaryConsts:
         return getattr(cls, key.upper(), None)
 
 
+# ------------------------------------------------- shared to_dict helpers
+
+TURBULENCE_KEYS = (
+    'ke_spec', 'turb_intensity', 'turb_length_scale',
+    'turb_hydraulic_diam', 'turb_viscosity_ratio',
+)
+
+RADIATION_KEYS = ('radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b')
+
+
+def _map_consts(data: dict[str, str], *keys: str) -> None:
+    """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
+    for key in keys:
+        data[key] = BoundaryConsts[key].get(data[key], 'unknown')
+
+
+def _filter_sources(data: dict[str, str]) -> None:
+    """Drop ``source_terms`` when the ``sources`` switch is off."""
+    if data['sources'] == '#f':
+        data.pop('source_terms', None)
+
+
+def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
+    """Keep only the turbulence parameters relevant to the active turbulence model."""
+    if turb_model in ('inviscid', 'lam'):
+        for key in TURBULENCE_KEYS:
+            data.pop(key, None)
+        return
+    _map_consts(data, 'ke_spec')
+    match data['ke_spec']:
+        case 'Intensity and Length Scale':
+            data.pop('turb_viscosity_ratio', None)
+            data.pop('turb_hydraulic_diam', None)
+        case 'Intensity and Viscosity Ratio':
+            data.pop('turb_length_scale', None)
+            data.pop('turb_hydraulic_diam', None)
+        case 'Intensity and Hydraulic Diameter':
+            data.pop('turb_length_scale', None)
+            data.pop('turb_viscosity_ratio', None)
+
+
+def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
+    """Map radiation codes and drop radiation fields when no radiation model is active."""
+    _map_consts(data, 'radiation_bc', 't_b_b_spec')
+    if rad_model not in (None, 'false'):
+        if data['t_b_b_spec'] == 'Boundary Temperature':
+            data.pop('t_b_b', None)
+    else:
+        for key in RADIATION_KEYS:
+            data.pop(key, None)
+
+
 class BoundaryFactory:
     _REGISTRY = {}
 
@@ -130,10 +182,8 @@ class Fluid:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        if data['sources'] == '#f':
-            data.pop('source_terms', None)
-
-        if not rad_model:
+        _filter_sources(data)
+        if rad_model in (None, 'false'):
             data.pop('radiating', None)
 
         return data
@@ -154,10 +204,8 @@ class Solid:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        if data['sources'] == '#f':
-            data.pop('source_terms', None)
-
-        if not rad_model:
+        _filter_sources(data)
+        if rad_model in (None, 'false'):
             data.pop('radiating', None)
 
         return data
@@ -203,23 +251,8 @@ class VelocityInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        for key in ['velocity_spec', 'frame_of_reference', 'coordinate_system', 'ke_spec']:
-            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
-
-        if turb_model in ['inviscid', 'lam']:
-            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
-                data.pop(key, None)
-        else:
-            match data['ke_spec']:
-                case 'Intensity and Length Scale':
-                    data.pop('turb_viscosity_ratio', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Viscosity Ratio':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Hydraulic Diameter':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_viscosity_ratio', None)
+        _map_consts(data, 'velocity_spec', 'frame_of_reference', 'coordinate_system')
+        _filter_turbulence(data, turb_model)
 
         match data['velocity_spec']:
             case 'Magnitude and Direction':
@@ -234,13 +267,7 @@ class VelocityInlet:
                 for key in ['coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w']:
                     data.pop(key, None)
 
-        if not rad_model:
-            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
-                data.pop(key, None)
-        else:
-            if data['t_b_b_spec'] == 'Boundary Temperature':
-                data.pop('t_b_b', None)
-
+        _filter_radiation(data, rad_model)
         return data
 
 
@@ -277,30 +304,9 @@ class MassFlowInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        for key in ['frame_of_reference', 'coordinate_system', 'ke_spec', 'radiation_bc', 't_b_b_spec']:
-            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
-
-        if turb_model in ['inviscid', 'lam']:
-            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
-                data.pop(key, None)
-        else:
-            match data['ke_spec']:
-                case 'Intensity and Length Scale':
-                    data.pop('turb_viscosity_ratio', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Viscosity Ratio':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Hydraulic Diameter':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_viscosity_ratio', None)
-
-        if not rad_model:
-            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
-                data.pop(key, None)
-        else:
-            if data['t_b_b_spec'] == 'Boundary Temperature':
-                data.pop('t_b_b', None)
+        _map_consts(data, 'frame_of_reference', 'coordinate_system')
+        _filter_turbulence(data, turb_model)
+        _filter_radiation(data, rad_model)
 
         return data
 
@@ -356,35 +362,14 @@ class PressureInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        for key in ['frame_of_reference', 'direction_spec', 'coordinate_system', 'ke_spec']:
-            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
+        _map_consts(data, 'frame_of_reference', 'direction_spec', 'coordinate_system')
+        _filter_turbulence(data, turb_model)
 
         if data['direction_spec'] == 'Normal to Boundary':
             for key in ['ni', 'nj', 'nk', 'coordinate_system']:
                 data.pop(key, None)
 
-        if turb_model in ['inviscid', 'lam']:
-            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
-                data.pop(key, None)
-        else:
-            match data['ke_spec']:
-                case 'Intensity and Length Scale':
-                    data.pop('turb_viscosity_ratio', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Viscosity Ratio':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_hydraulic_diam', None)
-                case 'Intensity and Hydraulic Diameter':
-                    data.pop('turb_length_scale', None)
-                    data.pop('turb_viscosity_ratio', None)
-
-        if not rad_model:
-            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
-                data.pop(key, None)
-        else:
-            if data['t_b_b_spec'] == 'Boundary Temperature':
-                data.pop('t_b_b', None)
-
+        _filter_radiation(data, rad_model)
         return data
 
 
@@ -429,29 +414,9 @@ class PressureOutlet:
             ]:
                 data.pop(key, None)
         else:
-            if turb_model in ['inviscid', 'lam']:
-                for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
-                    data.pop(key, None)
-            else:
-                data['ke_spec'] = BoundaryConsts.KE_SPEC.get(self.ke_spec, 'unknown')
-                match data['ke_spec']:
-                    case 'Intensity and Length Scale':
-                        data.pop('turb_viscosity_ratio', None)
-                        data.pop('turb_hydraulic_diam', None)
-                    case 'Intensity and Viscosity Ratio':
-                        data.pop('turb_length_scale', None)
-                        data.pop('turb_hydraulic_diam', None)
-                    case 'Intensity and Hydraulic Diameter':
-                        data.pop('turb_length_scale', None)
-                        data.pop('turb_viscosity_ratio', None)
+            _filter_turbulence(data, turb_model)
 
-        if not rad_model:
-            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
-                data.pop(key, None)
-        else:
-            if data['t_b_b_spec'] == 'Boundary Temperature':
-                data.pop('t_b_b', None)
-
+        _filter_radiation(data, rad_model)
         return data
 
 
@@ -505,8 +470,7 @@ class Wall:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        for key in ['thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc', 'radiation_bc']:
-            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
+        _map_consts(data, 'thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc', 'radiation_bc')
 
         match data['thermal_bc']:
             case 'Temperature':
@@ -536,14 +500,14 @@ class Wall:
             data.pop('roughness_height', None)
             data.pop('roughness_const', None)
 
-        if not rad_model:
-            data.pop('radiation_bc', None)
-            data.pop('in_emiss', None)
-            data.pop('band_diffuse_frac', None)
-        else:
+        if rad_model not in (None, 'false'):
             match data['radiation_bc']:
                 case '(Semi-)Transparent':
                     data.pop('in_emiss', None)
+        else:
+            data.pop('radiation_bc', None)
+            data.pop('in_emiss', None)
+            data.pop('band_diffuse_frac', None)
 
         return data
 
