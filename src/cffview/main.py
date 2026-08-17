@@ -59,9 +59,20 @@ def show_mesh(file_path: str) -> None:
     from .plotter import MeshPlotter
 
     if file_path.endswith('cas.h5'):
-        from .utils import disable_dat_file
-        with disable_dat_file(file_path):
+        import os
+        dat_path = os.path.splitext(file_path)[0]
+        if dat_path.endswith('.cas'):
+            dat_path = dat_path[:-4]
+        dat_path += '.dat.h5'
+        bak_path = dat_path + '.tmp_bak'
+        renamed = os.path.exists(dat_path)
+        if renamed:
+            os.rename(dat_path, bak_path)
+        try:
             mesh = pv.read(file_path)
+        finally:
+            if renamed and os.path.exists(bak_path):
+                os.rename(bak_path, dat_path)
     elif file_path.endswith('msh.h5'):
         import numpy as np
         from h5py import File, Group, Dataset

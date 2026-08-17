@@ -5,51 +5,6 @@ coloured JSON printing, Scheme-to-string conversion, and file helpers used
 across the cffview modules.
 """
 
-import sys
-from contextlib import contextmanager
-
-# from Ansys Fluent sg.h
-DISCRETIZATION_SCHEME = {
-    "0": "First Order Upwind",
-    "1": "Second Order Upwind",
-    "2": "Power Law",
-    "3": "Central Difference",
-    "4": "Quick",
-    "5": "Modified HRIC",
-    "6": "Third-Order MUSCL",
-    "7": "Bounded Central Differencing",
-    "8": "CICSAM",
-
-    # the LES flux for the cpld solver
-    "9": "Low Diffusion Second Order",
-
-    # these are for face pressure interpolation
-    "10": "Standard",  # default
-    "11": "Linear",
-    "12": "Second Order",
-    "13": "Body Force Weighted",
-    "14": "PRESTO!",
-    "15": "Continuity Based",
-
-    "16": "Geo-Reconstruct",
-    "17": "Donor-Acceptor",
-
-    "18": "Modified Body Force Weighted",
-
-    "20": "SIMPLE",
-    "21": "SIMPLEC",
-    "22": "PISO",
-    "23": "Phase Coupled SIMPLE",
-    "24": "Coupled",
-    "25": "Fractional Step",
-    "26": "M_P_COUPLED",
-    "27": "M_P_FULL_COUPLED",
-
-    "28": "Compressive",
-    "29": "BGM",
-    "30": "Phase Coupled PISO",
-    "31": "Low Diffusion Central",
-}
 
 FACE_ZONE_TYPE_GROUPS = {
     -1: ["invalid"],
@@ -163,24 +118,6 @@ DATA_KEYS = (
     'SV_W_RG_AUX',
 )
 
-# PyVista plotter's default keyboard shortcuts
-KEYBOARD_SHORTCUTS = {
-    'q': 'Close the rendering window',
-    'f': 'Focus and zoom in on a point',
-    'v': 'Isometric camera view',
-    'w': 'Switch all datasets to a wireframe representation',
-    'r': 'Reset the camera to view all datasets',
-    's': 'Switch all datasets to a surface representation',
-    'shift+click or middle-click' if not sys.platform.startswith('darwin') else 'shift+click': 'Pan the rendering scene',
-    'left-click' if not sys.platform.startswith('darwin') else 'cmd+click': 'Rotate the rendering scene in 3D',
-    'ctrl+click': 'Rotate the rendering scene in 2D(view-plane)',
-    'mouse-wheel or right-click' if not sys.platform.startswith('darwin') else 'ctl+click': 'Continuously zoom the rendering scene',
-    'shift+s': 'Save a screenshot(only on BackgroundPlotter)',
-    'shift+c': 'Enable interactive cell selection/picking',
-    'up/down': 'Zoom in and out',
-    '+ /-': 'Increase/decrease the point size and line widths',
-}
-
 
 def print_colored_dict(data) -> None:
     """Print nested data in 4-space JSON format.
@@ -240,36 +177,3 @@ def print_colored_dict(data) -> None:
             else:
                 # Number / boolean / null inside an array
                 print(f"{indent}{PRIM_COLOR}{content}{RESET}")
-
-
-def stringify_nested_list(lst):
-    from sexpdata import Quoted
-    result = []
-    for item in lst:
-        if isinstance(item, Quoted):
-            item = item.x  # unwrap Quoted to its inner value
-        result.append(stringify_nested_list(item) if isinstance(item, list) else str(item))
-    return result
-
-
-@contextmanager
-def disable_dat_file(cas_path):
-    """ Context manager that temporarily isolates the .dat.h5 file with the same name. """
-    import os
-    base_path = os.path.splitext(cas_path)[0]
-    if base_path.endswith('.cas'):
-        base_path = base_path[:-4]
-
-    dat_path = base_path + ".dat.h5"
-    bak_path = base_path + ".dat.h5.tmp_bak"
-
-    renamed = False
-    if os.path.exists(dat_path):
-        os.rename(dat_path, bak_path)
-        renamed = True
-
-    try:
-        yield
-    finally:
-        if renamed and os.path.exists(bak_path):
-            os.rename(bak_path, dat_path)
