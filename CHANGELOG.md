@@ -10,10 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--dat` for plotting `.dat.h5` file's residuals data used with `--plot`. 
+- Radiation boundary condition settings (`radiation-bc`, `in-emiss`, `t-b-b-spec`, ...) for inlet/outlet boundaries and walls, shown only when a radiation model is enabled.
+- `RADIATION_BC` and `T_B_B_SPEC` constants mapping Fluent radiation codes to readable strings.
+
+### Changed
+
+- Boundary `to_dict()` now also takes the radiation model and omits radiation-related fields when no radiation model is used.
+- `MassFlowInlet` fields reorganised; turbulence parameters filtered according to the turbulence model.
 
 ### Fixed
 
 - `source_terms` udf parsing error for `Solid` and `Fluid` boundary
+- Typo in `Interior` attribute name (`is_not_a_res_lans_interface` → `is_not_a_rans_les_interface`)
 
 ## [v0.4.0] - 2026-08-14
 

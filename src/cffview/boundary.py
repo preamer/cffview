@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 
 class BoundaryConsts:
+    # region momentum
     VELOCITY_SPEC = {
         '0': 'Magnitude and Direction',
         '1': 'Components',
@@ -39,7 +40,9 @@ class BoundaryConsts:
         '0': 'Direction Vector',
         '1': 'Normal to Boundary',
     }
+    # endregion momentum
 
+    # region thermal
     THERMAL_BC = {
         '0': 'Temperature',
         '1': 'Heat Flux',
@@ -70,6 +73,21 @@ class BoundaryConsts:
         '0': 'Standard',
         '1': 'High Roughness (Icing)',
     }
+    # endregion thermal
+
+    # region radiation
+    RADIATION_BC = {
+        '0': 'Gray',
+        '1': 'Specular',
+        '2': '(Semi-)Transparent',
+        '3': 'Opaque',
+    }
+
+    T_B_B_SPEC = {
+        '0': 'Boundary Temperature',
+        '1': 'Specified External Temperature',
+    }
+    # endregion radiation
 
     @classmethod
     def __class_getitem__(cls, key: str):
@@ -107,12 +125,16 @@ class Fluid:
     laminar: str = ''
     porous: str = ''
     fanzone: str = ''
+    radiating: str = ''
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
             data.pop('source_terms', None)
+
+        if not rad_model:
+            data.pop('radiating', None)
 
         return data
 
@@ -127,12 +149,16 @@ class Solid:
     source_terms: dict[str, dict[str, str]] = field(default_factory=dict)
     fixed: str = ''
     solid_motion: str = ''
+    radiating: str = ''
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if data['sources'] == '#f':
             data.pop('source_terms', None)
+
+        if not rad_model:
+            data.pop('radiating', None)
 
         return data
 
@@ -150,6 +176,7 @@ class VelocityInlet:
 
     ke_spec: str = ''
     turb_intensity: str = ''
+    turb_length_scale: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
 
@@ -166,7 +193,14 @@ class VelocityInlet:
     t: str = ''
     # endregion thermal
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         for key in ['velocity_spec', 'frame_of_reference', 'coordinate_system', 'ke_spec']:
@@ -200,6 +234,13 @@ class VelocityInlet:
                 for key in ['coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w']:
                     data.pop(key, None)
 
+        if not rad_model:
+            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
+                data.pop(key, None)
+        else:
+            if data['t_b_b_spec'] == 'Boundary Temperature':
+                data.pop('t_b_b', None)
+
         return data
 
 
@@ -208,11 +249,60 @@ class VelocityInlet:
 class MassFlowInlet:
     name: str
     id_: str
+
+    # region momentum
     mass_flow: str = ''
-    t: str = ''
+    frame_of_reference: str = ''
+
+    ke_spec: str = ''
     turb_intensity: str = ''
+    turb_length_scale: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
+
+    coordinate_system: str = ''
+    # endregion momentum
+
+    # region thermal
+    t0: str = ''
+    # endregion thermal
+
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        for key in ['frame_of_reference', 'coordinate_system', 'ke_spec', 'radiation_bc', 't_b_b_spec']:
+            data[key] = BoundaryConsts[key].get(data[key], 'unknown')
+
+        if turb_model in ['inviscid', 'lam']:
+            for key in ['ke_spec', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio', 'turb_intensity']:
+                data.pop(key, None)
+        else:
+            match data['ke_spec']:
+                case 'Intensity and Length Scale':
+                    data.pop('turb_viscosity_ratio', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Viscosity Ratio':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case 'Intensity and Hydraulic Diameter':
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_viscosity_ratio', None)
+
+        if not rad_model:
+            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
+                data.pop(key, None)
+        else:
+            if data['t_b_b_spec'] == 'Boundary Temperature':
+                data.pop('t_b_b', None)
+
+        return data
 
 
 @dataclass
@@ -256,7 +346,14 @@ class PressureInlet:
     t0: str = ''
     # endregion thermal
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         for key in ['frame_of_reference', 'direction_spec', 'coordinate_system', 'ke_spec']:
@@ -280,6 +377,13 @@ class PressureInlet:
                 case 'Intensity and Hydraulic Diameter':
                     data.pop('turb_length_scale', None)
                     data.pop('turb_viscosity_ratio', None)
+
+        if not rad_model:
+            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
+                data.pop(key, None)
+        else:
+            if data['t_b_b_spec'] == 'Boundary Temperature':
+                data.pop('t_b_b', None)
 
         return data
 
@@ -308,7 +412,14 @@ class PressureOutlet:
     t0: str = ''
     # endregion thermal
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
         if self.prevent_reverse_flow == '#t':
@@ -333,6 +444,13 @@ class PressureOutlet:
                     case 'Intensity and Hydraulic Diameter':
                         data.pop('turb_length_scale', None)
                         data.pop('turb_viscosity_ratio', None)
+
+        if not rad_model:
+            for key in ['radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b']:
+                data.pop(key, None)
+        else:
+            if data['t_b_b_spec'] == 'Boundary Temperature':
+                data.pop('t_b_b', None)
 
         return data
 
@@ -378,10 +496,16 @@ class Wall:
     shell_conduction: str = ''
     # endregion thermal
 
-    def to_dict(self, turb_model: str = None) -> dict[str, str]:
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    band_diffuse_frac: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        for key in ['thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc']:
+        for key in ['thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc', 'radiation_bc']:
             data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
         match data['thermal_bc']:
@@ -411,6 +535,15 @@ class Wall:
             data.pop('rough_bc', None)
             data.pop('roughness_height', None)
             data.pop('roughness_const', None)
+
+        if not rad_model:
+            data.pop('radiation_bc', None)
+            data.pop('in_emiss', None)
+            data.pop('band_diffuse_frac', None)
+        else:
+            match data['radiation_bc']:
+                case '(Semi-)Transparent':
+                    data.pop('in_emiss', None)
 
         return data
 
@@ -479,7 +612,7 @@ class Radiator:
 class Interior:
     name: str
     id_: str
-    is_not_a_res_lans_interface: str = ''
+    is_not_a_rans_les_interface: str = ''
 
 
 @dataclass

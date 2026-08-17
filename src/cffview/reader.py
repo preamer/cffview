@@ -222,7 +222,6 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
     boundaries: list[NestedStrList] = stringify_nested_list(
         sexpdata.parse(texts.boundary, true=None)
     )
-    solver_turb = _get_turb_model(texts.general)
 
     data: dict[str, Any] = {}
     for boundary_info in boundaries:
@@ -235,6 +234,8 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
             if hasattr(new_boundary, property_name):
                 if property_[1] == '.':
                     setattr(new_boundary, property_name, property_[2])
+                elif len(property_) == 2:
+                    setattr(new_boundary, property_name, property_[1])
                 elif isinstance(property_[1], list):
                     if property_name == 'source_terms':
                         source_terms_list = property_[1:]
@@ -251,10 +252,10 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
                                     value[eq][property_name] = source_property_[2]
                         setattr(new_boundary, 'source_terms', value)
                     else:
-                        setattr(new_boundary, property_name, f'{property_[1][0]}/{property_[1][2]}')
+                        setattr(new_boundary, property_name, _sel_expr(property_[1]))
 
         b_list.append(
-            new_boundary.to_dict(solver_turb)
+            new_boundary.to_dict(_get_turb_model(texts.general), _get_radiation_model(texts.general))
             if hasattr(new_boundary, 'to_dict')
             else new_boundary.__dict__
         )
