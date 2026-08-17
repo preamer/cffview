@@ -41,7 +41,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.changelog_reader.outputs.version || github.ref_name }}
+          tag_name: ${{ steps.changelog_reader.outputs.version && format('v{0}', steps.changelog_reader.outputs.version) || github.ref_name }}
           files: dist/*
           body: ${{ steps.changelog_reader.outputs.release-notes }}
           generate_release_notes: true
