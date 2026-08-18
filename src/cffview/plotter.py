@@ -8,7 +8,7 @@ variable switching, opacity and clip-plane widgets.
 import sys
 from functools import wraps
 
-from pyvista import _vtk, Plotter, MultiBlock, PolyData, UnstructuredGrid
+from pyvista import _vtk, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
 
 from .utils import print_colored_dict
 
@@ -193,6 +193,39 @@ class DataPlotter(BasePlotter):
     def __init__(self, mesh: MultiBlock | PolyData, var_names: tuple[str]):
         super().__init__(mesh)
         self.var_names = var_names
+
+        self.scalar_ranges = {
+            name: self.mesh.get_data_range(name, preference=self._scalar_mode(name))
+            for name in var_names
+        }
+
+        self.mesh_actor = self.pl.add_mesh(
+            self.mesh,
+            name='mesh',
+            cmap='turbo',
+            scalars=var_names[0],
+            scalar_bar_args={
+                'title': var_names[0],
+                'vertical': True,
+                'position_x': 0.85,
+                'position_y': 0.2,
+                'height': 0.7,
+                'width': 0.1,
+            },
+        )
+        self.scalar_bar: _vtk.vtkScalarBarActor = next(iter(self.pl.scalar_bars.values()))
+
+        self.mesh_clip_plane_actor = self.pl.add_mesh_clip_plane(
+            self.mesh,
+            name='clip_mesh',
+            cmap='turbo',
+            scalars=var_names[0],
+            show_scalar_bar=False,
+        )
+        self.mesh_clip_plane_actor.visibility = False
+        self.clip_plane = self.pl.widgets.plane_widgets[-1]
+        self.clip_plane.Off()
+
         self.clip_plane_cb = self._add_clip_plane_cb()
         self.scalar_slider = self._add_scalar_slider_widget()
         self.grid_cb = self._add_grid_cb()
@@ -207,45 +240,23 @@ class DataPlotter(BasePlotter):
             }
         )
 
+    def _scalar_mode(self, name: str) -> str:
+        return 'cell' if name in self.mesh.cell_data else 'point'
+
+    def _set_scalars(self, name: str) -> None:
+        """Switch the displayed variable without rebuilding any actor."""
+        mode = self._scalar_mode(name)
+        for actor in (self.mesh_actor, self.mesh_clip_plane_actor):
+            mapper: DataSetMapper = actor.mapper
+            mapper.scalar_map_mode = mode
+            mapper.set_active_scalars(name, preference=mode)
+            mapper.scalar_range = self.scalar_ranges[name]
+        self.scalar_bar.title = name
+        self.pl.render()
+
     def _add_scalar_slider_widget(self):
         def change_scalar(value: float):
-            value = int(value)
-            new_scalar = self.var_names[value]
-            scalar_bar_args = {
-                'title': new_scalar,
-                'vertical': True,
-                'position_x': 0.85,
-                'position_y': 0.2,
-                'height': 0.7,
-                'width': 0.1,
-            }
-            is_clip = self.mesh_clip_plane_actor.visibility if hasattr(self, 'mesh_clip_plane_actor') else None
-            for scalar_name in list(self.pl.scalar_bars.keys()):
-                self.pl.remove_scalar_bar(scalar_name)
-            self.mesh_actor = self.pl.add_mesh(
-                self.mesh,
-                name='mesh',
-                cmap='turbo',
-                scalars=new_scalar,
-                scalar_bar_args=scalar_bar_args,
-            )
-            self.pl.clear_plane_widgets()
-            self.mesh_clip_plane_actor = self.pl.add_mesh_clip_plane(
-                self.mesh,
-                name='clip_mesh',
-                cmap='turbo',
-                scalars=new_scalar,
-            )
-            if is_clip:
-                self.mesh_actor.visibility = False
-                self.mesh_clip_plane_actor.visibility = True
-                self.clip_plane = self.pl.widgets.plane_widgets[-1]
-                self.clip_plane.On()
-            else:
-                self.mesh_actor.visibility = True
-                self.mesh_clip_plane_actor.visibility = False
-                self.clip_plane = self.pl.widgets.plane_widgets[-1]
-                self.clip_plane.Off()
+            self._set_scalars(self.var_names[int(value)])
 
         scalar_slider = self.pl.add_slider_widget(
             change_scalar,
