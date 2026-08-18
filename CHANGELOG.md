@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.1] - 2026-08-18
+
 ### Added
 
 - `--dat` for plotting `.dat.h5` file's residuals data used with `--plot`. 
@@ -17,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Boundary `to_dict()` now also takes the radiation model and omits radiation-related fields when no radiation model is used.
 - `MassFlowInlet` fields reorganised; turbulence parameters filtered according to the turbulence model.
-- `radiation_bc` and `t_b_b_spec` codes are now mapped to readable strings for `velocity-inlet`, `pressure-inlet` and `pressure-outlet` boundaries (previously raw codes).
 - `DataPlotter` switches variables with the slider by updating the existing actors in place instead of rebuilding them, removing the UI stutter when changing variables.
 
 ### Fixed
