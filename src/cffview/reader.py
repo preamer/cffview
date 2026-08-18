@@ -80,7 +80,7 @@ class CaseTexts:
 # ------------------------------------------------------------ shared helpers
 
 
-def stringify_nested_list(lst):
+def stringify_nested_list(lst: list[Any]) -> NestedStrList:
     from sexpdata import Quoted
     result = []
     for item in lst:
@@ -233,7 +233,7 @@ def _get_reference_values(general: str) -> dict[str, str]:
 def _read_materials(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     materials = re.search(r'(\(materials.*)', general, re.M).group(1)
-    materials_list: NestedStrList = stringify_nested_list(sexpdata.loads(materials))
+    materials_list = stringify_nested_list(sexpdata.loads(materials))
 
     data: dict[str, Any] = {}
     for material in materials_list[1]:
@@ -271,7 +271,7 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
 
 
 def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
-    boundaries: list[NestedStrList] = stringify_nested_list(
+    boundaries = stringify_nested_list(
         sexpdata.parse(texts.boundary, true=None)
     )
 
@@ -321,7 +321,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
 def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     interfaces = re.search(r'(\(sliding-interfaces\s+.*)', general, re.M).group(1)
-    interfaces_list: list[NestedStrList] = stringify_nested_list(
+    interfaces_list = stringify_nested_list(
         sexpdata.loads(interfaces, true=None)[1]
     )
 
@@ -341,7 +341,7 @@ def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
 def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     nes = re.search(r'(\(named-expressions.*)', general, re.M).group(1)
-    nes_list: NestedStrList = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
+    nes_list = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
 
     data: dict[str, Any] = {}
     for ne in nes_list:
@@ -395,7 +395,7 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
 def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     rds = re.search(r'(\(monitor/report-definitions.*)', general, re.M).group(1)
-    rds_list: NestedStrList = stringify_nested_list(sexpdata.loads(rds, true=None)[1])
+    rds_list = stringify_nested_list(sexpdata.loads(rds, true=None)[1])
 
     data: dict[str, Any] = {}
     for rd in rds_list:
@@ -422,7 +422,7 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
 def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     plotsets = re.search(r'(\(monitor/plotsets.*)', general, re.M).group(1)
-    plotsets_list: NestedStrList = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
+    plotsets_list = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
 
     data: dict[str, Any] = {}
     for plotset in plotsets_list:
@@ -439,7 +439,7 @@ def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
 def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     monitorsets = re.search(r'(\(monitor/monitorsets.*)', general, re.M).group(1)
-    monitorsets_list: NestedStrList = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
+    monitorsets_list = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
 
     data: dict[str, Any] = {}
     for monitorset in monitorsets_list:
@@ -477,7 +477,7 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
     res = re.search(rf'(\({residuals}\s+.*)', general, re.M).group(1)
     res = sexpdata.loads(res, true=None)[1]
     if str(res) != '#f':
-        res_list: NestedStrList = stringify_nested_list(res)
+        res_list = stringify_nested_list(res)
         for eq in res_list:
             data[eq[0]] = {
                 'monitor': eq[1],
@@ -510,18 +510,14 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
     cortex = texts.cortex
 
     surfaces_groups = re.search(r'(\(surfaces/groups.*)', cortex, re.M).group(1)
-    surfaces_groups_list: NestedStrList = stringify_nested_list(
-        sexpdata.loads(surfaces_groups, true=None)[1]
-    )
+    surfaces_groups_list = stringify_nested_list(sexpdata.loads(surfaces_groups, true=None)[1])
     name_id_map = {
         surface[0]: surface[1][0]
         for surface in surfaces_groups_list
     }  # name -> id
 
     surface_id_map = re.search(r'(\(cx-surface-id-map.*)', cortex, re.M).group(1)
-    surface_id_map_list: NestedStrList = stringify_nested_list(
-        sexpdata.loads(surface_id_map, true=None)[1]
-    )
+    surface_id_map_list = stringify_nested_list(sexpdata.loads(surface_id_map, true=None)[1])
     id_virtual_id_map = {
         id_group[0]: id_group[1]
         for id_group in surface_id_map_list
@@ -533,9 +529,7 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
     }  # virtual id -> name
 
     surface_def_list = re.search(r'(\(cx-surface-def-list.*)', cortex, re.M).group(1)
-    surface_def_list: NestedStrList = stringify_nested_list(
-        sexpdata.loads(surface_def_list, true=None)[1]
-    )
+    surface_def_list = stringify_nested_list(sexpdata.loads(surface_def_list, true=None)[1])
 
     data: dict[str, Any] = {}
     for surface_def in surface_def_list:
@@ -574,7 +568,7 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
 def _read_contours(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     contours = re.search(r'(\(graphics/contours.*)', general, re.M).group(1)
-    contours_list: NestedStrList = stringify_nested_list(sexpdata.loads(contours, true=None)[1])
+    contours_list = stringify_nested_list(sexpdata.loads(contours, true=None)[1])
 
     data: dict[str, Any] = {}
     for contour in contours_list:
@@ -603,7 +597,7 @@ def _read_contours(texts: CaseTexts) -> dict[str, Any]:
 def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     vectors = re.search(r'(\(graphics/vectors\s.*)', general, re.M).group(1)
-    vectors_list: NestedStrList = stringify_nested_list(sexpdata.loads(vectors, true=None)[1])
+    vectors_list = stringify_nested_list(sexpdata.loads(vectors, true=None)[1])
 
     data: dict[str, Any] = {}
     for vector in vectors_list:
@@ -640,7 +634,7 @@ def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
 def _read_xy_plot(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     xy_plots = re.search(r'(\(graphics/xy-plot.*)', general, re.M).group(1)
-    xy_plots_list: NestedStrList = stringify_nested_list(sexpdata.loads(xy_plots, true=None)[1])
+    xy_plots_list = stringify_nested_list(sexpdata.loads(xy_plots, true=None)[1])
 
     data: dict[str, Any] = {}
     for xy_plot in xy_plots_list:
