@@ -40,6 +40,12 @@ class BoundaryConsts:
         '0': 'Direction Vector',
         '1': 'Normal to Boundary',
     }
+
+    FLOW_SPEC = {
+        '0': 'Mass Flow Rate',
+        '1': 'Mass Flux',
+        '2': 'Mass Flux with Average Mass Flux',
+    }
     # endregion momentum
 
     # region thermal
@@ -104,9 +110,9 @@ TURBULENCE_KEYS = (
 RADIATION_KEYS = ('radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b')
 
 
-def _map_consts(data: dict[str, str], *keys: str) -> None:
+def _map_consts(data: dict[str, str]) -> None:
     """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
-    for key in keys:
+    for key in filter(lambda k: k.upper() in BoundaryConsts.__dict__, data.keys()):
         data[key] = BoundaryConsts[key].get(data[key], 'unknown')
 
 
@@ -122,7 +128,6 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
         for key in TURBULENCE_KEYS:
             data.pop(key, None)
         return
-    _map_consts(data, 'ke_spec')
     match data['ke_spec']:
         case 'Intensity and Length Scale':
             data.pop('turb_viscosity_ratio', None)
@@ -137,7 +142,6 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
 
 def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
     """Map radiation codes and drop radiation fields when no radiation model is active."""
-    _map_consts(data, 'radiation_bc', 't_b_b_spec')
     if rad_model not in (None, 'false'):
         if data['t_b_b_spec'] == 'Boundary Temperature':
             data.pop('t_b_b', None)
@@ -251,7 +255,7 @@ class VelocityInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        _map_consts(data, 'velocity_spec', 'frame_of_reference', 'coordinate_system')
+        _map_consts(data)
         _filter_turbulence(data, turb_model)
 
         match data['velocity_spec']:
@@ -278,8 +282,12 @@ class MassFlowInlet:
     id_: str
 
     # region momentum
+    flow_spec: str = ''
     mass_flow: str = ''
+    mass_flux: str = ''
+    mass_flux_ave: str = ''
     frame_of_reference: str = ''
+    p: str = ''
 
     ke_spec: str = ''
     turb_intensity: str = ''
@@ -304,9 +312,19 @@ class MassFlowInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        _map_consts(data, 'frame_of_reference', 'coordinate_system')
+        _map_consts(data)
         _filter_turbulence(data, turb_model)
         _filter_radiation(data, rad_model)
+
+        match data['flow_spec']:
+            case 'Mass Flow Rate':
+                data.pop('mass_flux', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux':
+                data.pop('mass_flow', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux with Average Mass Flux':
+                data.pop('mass_flow', None)
 
         return data
 
@@ -316,11 +334,46 @@ class MassFlowInlet:
 class MassFlowOutlet:
     name: str
     id_: str
+
+    # region momentum
+    flow_spec: str = ''
     mass_flow: str = ''
-    t: str = ''
+    mass_flux: str = ''
+    mass_flux_ave: str = ''
+    frame_of_reference: str = ''
+
+    ke_spec: str = ''
     turb_intensity: str = ''
+    turb_length_scale: str = ''
     turb_hydraulic_diam: str = ''
     turb_viscosity_ratio: str = ''
+    # endregion momentum
+
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        _map_consts(data)
+        _filter_turbulence(data, turb_model)
+        _filter_radiation(data, rad_model)
+
+        match data['flow_spec']:
+            case 'Mass Flow Rate':
+                data.pop('mass_flux', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux':
+                data.pop('mass_flow', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux with Average Mass Flux':
+                data.pop('mass_flow', None)
+
+        return data
 
 
 @dataclass
@@ -362,7 +415,7 @@ class PressureInlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        _map_consts(data, 'frame_of_reference', 'direction_spec', 'coordinate_system')
+        _map_consts(data)
         _filter_turbulence(data, turb_model)
 
         if data['direction_spec'] == 'Normal to Boundary':
@@ -407,6 +460,8 @@ class PressureOutlet:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
+        _map_consts(data)
+
         if self.prevent_reverse_flow == '#t':
             for key in [
                 't', 'ke_spec', 'turb_intensity', 'turb_length_scale',
@@ -426,6 +481,18 @@ class Outflow:
     name: str
     id_: str
     flowrate_frac: str = ''
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        _map_consts(data)
+        _filter_radiation(data, rad_model)
+
+        return data
 
 
 @dataclass
@@ -470,7 +537,7 @@ class Wall:
     def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
         data = self.__dict__.copy()
 
-        _map_consts(data, 'thermal_bc', 'motion_bc', 'shear_bc', 'rough_bc', 'radiation_bc')
+        _map_consts(data)
 
         match data['thermal_bc']:
             case 'Temperature':
