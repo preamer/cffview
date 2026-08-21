@@ -375,6 +375,26 @@ def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
         return {'custom-field-functions': data}
 
 
+# ---------------------------------------------------------------- unit table
+
+
+def _read_units(texts: CaseTexts) -> dict[str, Any]:
+    """Parse the unit table from Cortex Variables; empty means default SI units."""
+    units = re.search(r'(\(unit-table\s+.*?\)\s*\))', texts.cortex, re.M)
+    if units is None:
+        return {'units': 'Default SI units.'}
+    entries = re.findall(
+        r'\(([^()\s]+)\s+([^()\s]+)\s+([^()\s]+)\s+([^()\s]+)\)',
+        units.group(1),
+    )
+    return {
+        'units': {
+            name: (unit, scale, offset)
+            for name, unit, scale, offset in entries
+        }
+    }
+
+
 # --------------------------------------------- discretisation & relaxation
 
 
@@ -709,6 +729,7 @@ READERS: dict[str, Callable[[CaseTexts], dict[str, Any]]] = {
     'interfaces': _read_interfaces,
     'ne': _read_named_expressions,
     'cff': _read_custom_field_functions,
+    'units': _read_units,
     'disc': _read_disc,
     'rd': _read_report_definitions,
     'plotsets': _read_plotsets,
@@ -752,7 +773,7 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     texts = _read_texts(
         file_path,
         need_boundary=flags.get('bd', False),
-        need_cortex=flags.get('surfaces', False) or flags.get('cff', False),
+        need_cortex=flags.get('surfaces', False) or flags.get('cff', False) or flags.get('units', False),
     )
 
     data: dict[str, Any] = {}

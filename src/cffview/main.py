@@ -341,6 +341,13 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
     ]
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
+    parser.add_argument(
+        "--units",
+        nargs="*",
+        default=False,
+        metavar="KEYWORD",
+        help="show unit table, optionally filtered by one or more keywords",
+    )
 
     args = parser.parse_args()
 
@@ -364,12 +371,24 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
             from .reader import read_case
             from .utils import print_colored_dict
             keys = [
-                'solver', 'mat', 'bd', 'ne', 'cff', 'disc', 'rd', 'interfaces',
+                'solver', 'mat', 'bd', 'ne', 'cff', 'units', 'disc', 'rd', 'interfaces',
                 'plotsets', 'monitorsets', 'residuals', 'iter', 'surfaces',
                 'contours', 'vectors', 'xy_plot',
             ]
             kwargs = {k: getattr(args, k) for k in keys}
+            if args.units is not False:  # --units 出现（含裸用），[] 是 falsy 需单独处理
+                kwargs['units'] = True
             output = read_case(args.file_path, **kwargs)
+            if isinstance(args.units, list) and args.units:
+                keywords = [k.lower() for k in args.units]
+                output['units'] = {
+                    name: value
+                    for name, value in output['units'].items()
+                    if any(
+                        k in name.lower() or k in str(value[0]).lower()
+                        for k in keywords
+                    )
+                }
             print_colored_dict(output)
 
             if args.save is not False:

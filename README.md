@@ -52,6 +52,7 @@ cffview <file> [options]
 | `--interfaces` | Mesh interfaces settings |
 | `--ne`, `--named-expressions` | Named expressions |
 | `--cff`, `--custom-field-functions` | Custom field functions |
+| `--units [KEYWORD ...]` | Unit table (filtered by one or more keywords; empty means default SI units) |
 | `--disc` | Discretisation schemes and relaxation factors |
 | `--rd`, `--report-definitions` | Report definitions |
 | `--plotsets` | Plot sets |
