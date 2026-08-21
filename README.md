@@ -51,6 +51,7 @@ cffview <file> [options]
 | `--bd`, `--boundary` | Boundary condition settings |
 | `--interfaces` | Mesh interfaces settings |
 | `--ne`, `--named-expressions` | Named expressions |
+| `--cff`, `--custom-field-functions` | Custom field functions |
 | `--disc` | Discretisation schemes and relaxation factors |
 | `--rd`, `--report-definitions` | Report definitions |
 | `--plotsets` | Plot sets |

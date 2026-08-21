@@ -6,6 +6,7 @@ visualises meshes or data with PyVista. Reading case settings is delegated
 to :func:`cffview.reader.read_case`.
 """
 
+
 def print_version(file_path: str) -> None:
     """Get the version of the .h5 file
 
@@ -322,6 +323,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--bd", "--boundary"), "show boundary settings"),
         (("--interfaces",), "show mesh interfaces settings"),
         (("--ne", "--named-expressions"), "show named-expressions settings"),
+        (("--cff", "--custom-field-functions"), "show custom field functions"),
         (("--disc",), "show disc-scheme and relax-factor settings"),
         (("--rd", "--report-definitions"), "show report-definitions settings"),
         (("--plotsets",), "show report-definitions plotsets settings"),
@@ -362,7 +364,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
             from .reader import read_case
             from .utils import print_colored_dict
             keys = [
-                'solver', 'mat', 'bd', 'ne', 'disc', 'rd', 'interfaces',
+                'solver', 'mat', 'bd', 'ne', 'cff', 'disc', 'rd', 'interfaces',
                 'plotsets', 'monitorsets', 'residuals', 'iter', 'surfaces',
                 'contours', 'vectors', 'xy_plot',
             ]

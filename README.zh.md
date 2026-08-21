@@ -45,6 +45,7 @@ cffview <文件> [选项]
 | `--bd`, `--boundary` | 边界条件设置 |
 | `--interfaces` | 网格交界面设置 |
 | `--ne`, `--named-expressions` | 命名表达式 |
+| `--cff`, `--custom-field-functions` | 自定义场函数 |
 | `--disc` | 离散格式和松弛因子 |
 | `--rd`, `--report-definitions` | 报告定义 |
 | `--plotsets` | 图表集配置 |

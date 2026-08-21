@@ -356,6 +356,25 @@ def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
     return {'named-expressions': data}
 
 
+# --------------------------------------------------------- custom field functions
+
+
+def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
+    cortex = texts.cortex
+    cffs = re.search(r'(\(cell-function-defs\s+.*)', cortex, re.M)
+    if cffs is None:
+        return {'custom-field-functions': {}}
+    else:
+        cffs = cffs.group(1)
+        names = re.findall(r'\(name\s([^)]+)\)', cffs)
+        displays = re.findall(r'\(display\s([^)]+)\)', cffs)
+        data: dict[str, Any] = {
+            name: display.strip('"')
+            for name, display in zip(names, displays)
+        }
+        return {'custom-field-functions': data}
+
+
 # --------------------------------------------- discretisation & relaxation
 
 
@@ -427,12 +446,19 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
     for rd in avg_over_state_list:
         name = rd[0]
         ids = [id_.split('.')[0] for id_ in rd[1]]
-        values = sum(rd[2][2:], [])
-        right_ids: list[str] = list(data[name].values())[-2]
-        sorted_values = [0] * len(right_ids)
-        for i, v in zip(ids, values):
-            sorted_values[right_ids.index(i)] = v
-        data[name]['average-over-state'] = sorted_values
+        iter_range = rd[2][:2]
+        data[name]['iter-range'] = ' -> '.join(iter_range)
+
+        if data[name].get('per-zone?') == '#f' or data[name].get('per-surface?') == '#f':
+            value = rd[2][2]
+            data[name]['average-over-state'] = value
+        else:
+            values = sum(rd[2][2:], [])
+            right_order_ids: list[str] = list(data[name].values())[-2]
+            sorted_values = [0] * len(values)
+            for i, v in zip(ids, values):
+                sorted_values[right_order_ids.index(i)] = v
+            data[name]['average-over-state'] = sorted_values
 
     return {'report-definitions': data}
 
@@ -682,6 +708,7 @@ READERS: dict[str, Callable[[CaseTexts], dict[str, Any]]] = {
     'bd': _read_boundary,
     'interfaces': _read_interfaces,
     'ne': _read_named_expressions,
+    'cff': _read_custom_field_functions,
     'disc': _read_disc,
     'rd': _read_report_definitions,
     'plotsets': _read_plotsets,
@@ -725,7 +752,7 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     texts = _read_texts(
         file_path,
         need_boundary=flags.get('bd', False),
-        need_cortex=flags.get('surfaces', False),
+        need_cortex=flags.get('surfaces', False) or flags.get('cff', False),
     )
 
     data: dict[str, Any] = {}
