@@ -140,6 +140,41 @@ def _get_radiation_model(general: str) -> str:
     return 'false'
 
 
+@lru_cache(maxsize=None)
+def _get_gravity(general: str, dimension: str) -> dict[str, str] | str:
+    gravity = re.search(r'\(gravity\?\s+([^)\s]+)\)', general).group(1)
+    if gravity != '#t':
+        return 'false'
+    axes = ['x', 'y', 'z'] if dimension == '3d' else ['x', 'y']
+    return {axis: _sel_expr(general, f'gravity/{axis}') for axis in axes}
+
+
+@lru_cache(maxsize=None)
+def _get_operating_conditions(general: str) -> dict[str, str]:
+    conditions = [
+        'operating-pressure',
+        'pressure-reference/x', 'pressure-reference/y', 'pressure-reference/z',
+        'operating-temperature',
+    ]
+    use_operating_density = re.search(r'\(use-operating-density\?\s+([^)\s]+)\)', general).group(1)
+    if use_operating_density == '#t':
+        conditions.append('operating-density')
+    return {condition: _sel_expr(general, condition) for condition in conditions}
+
+
+@lru_cache(maxsize=None)
+def _get_reference_values(general: str) -> dict[str, str]:
+    reference_values = [
+        'area', 'depth', 'density', 'enthalpy', 'length',
+        'pressure', 'temperature', 'velocity', 'viscosity',
+        'gamma', 'thread', 'tol', 'yplus',
+    ]
+    return {
+        value: re.search(rf'\(reference-{value}\s+([^)\s]+)\)', general).group(1)
+        for value in reference_values
+    }
+
+
 @singledispatch
 def _sel_expr(arg, *args) -> str:
     """Unsupported first-argument type for :func:`_sel_expr`."""
@@ -167,6 +202,7 @@ def _(lst: list[str]) -> str:
     else:
         return lst[0]
 
+
 # ------------------------------------------------------------------- solver
 
 
@@ -193,39 +229,6 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
     solver['operating-conditions'] = _get_operating_conditions(general)
     solver['reference-values'] = _get_reference_values(general)
     return {'solver': solver}
-
-
-def _get_gravity(general: str, dimension: str) -> dict[str, str] | str:
-    gravity = re.search(r'\(gravity\?\s+([^)\s]+)\)', general).group(1)
-    if gravity != '#t':
-        return 'false'
-    axes = ['x', 'y', 'z'] if dimension == '3d' else ['x', 'y']
-    return {axis: _sel_expr(general, f'gravity/{axis}') for axis in axes}
-
-
-def _get_operating_conditions(general: str) -> dict[str, str]:
-    conditions = [
-        'operating-pressure',
-        'pressure-reference/x', 'pressure-reference/y', 'pressure-reference/z',
-        'operating-temperature',
-    ]
-    use_operating_density = re.search(r'\(use-operating-density\?\s+([^)\s]+)\)', general).group(1)
-    if use_operating_density == '#t':
-        conditions.append('operating-density')
-    return {condition: _sel_expr(general, condition) for condition in conditions}
-
-
-def _get_reference_values(general: str) -> dict[str, str]:
-    reference_values = [
-        'area', 'depth', 'density', 'enthalpy', 'length',
-        'pressure', 'temperature', 'velocity', 'viscosity',
-        'gamma', 'thread', 'tol', 'yplus',
-    ]
-    return {
-        value: re.search(rf'\(reference-{value}\s+([^)\s]+)\)', general).group(1)
-        for value in reference_values
-    }
-
 
 # ---------------------------------------------------------------- materials
 
@@ -400,19 +403,37 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for rd in rds_list:
         name = rd[0][2]
-        type_ = rd[1][1]
+        report_def = rd[1]
+        type_ = report_def[1]
         data[name] = {'type': type_}
+        property_dict = {
+            property_[0]: property_[2]
+            for property_ in report_def[2:]
+            if len(property_) == 3 and property_[1] == '.'
+        }
+        data[name].update(property_dict)
         if 'volume' in type_:
-            data[name]['field'] = rd[1][2][2]
-            data[name]['zones'] = [zone for zone in rd[1][6][1:]]
-            data[name]['per-zone?'] = rd[1][-5][2]
+            data[name]['zone-list'] = [zone for zone in report_def[4][1:]]
+            data[name]['zone-names'] = [zone for zone in report_def[6][1:]]
         elif 'surface' in type_:
-            data[name]['field'] = rd[1][2][2]
-            data[name]['surfaces'] = [surface for surface in rd[1][5][1:]]
-            data[name]['per-surface?'] = rd[1][-5][2]
+            data[name]['surface-ids'] = [surface for surface in report_def[4][1:]]
+            data[name]['surface-names'] = [surface for surface in report_def[5][1:]]
         elif 'flux' in type_:
-            data[name]['zones'] = [zone for zone in rd[1][3][1:]]
-            data[name]['per-zone?'] = rd[1][-5][2]
+            data[name]['zone-ids'] = [zone for zone in report_def[2][1:]]
+            data[name]['zone-names'] = [zone for zone in report_def[3][1:]]
+
+    avg_over_state = re.search(r'(\(monitor/average-over-state.*)', general, re.M).group(1)
+    avg_over_state_list = stringify_nested_list(sexpdata.loads(avg_over_state, true=None)[1])
+    for rd in avg_over_state_list:
+        name = rd[0]
+        ids = [id_.split('.')[0] for id_ in rd[1]]
+        values = sum(rd[2][2:], [])
+        right_ids: list[str] = list(data[name].values())[-2]
+        sorted_values = [0] * len(right_ids)
+        for i, v in zip(ids, values):
+            sorted_values[right_ids.index(i)] = v
+        data[name]['average-over-state'] = sorted_values
+
     return {'report-definitions': data}
 
 
