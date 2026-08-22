@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.2] - 2026-08-22
+
 ### Added
 
 - `--cff` / `--custom-field-functions` for showing custom field functions defined in the Cortex Variables.
