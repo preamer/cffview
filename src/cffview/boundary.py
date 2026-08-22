@@ -100,6 +100,22 @@ class BoundaryConsts:
         return getattr(cls, key.upper(), None)
 
 
+class BoundaryFactory:
+    _REGISTRY = {}
+
+    @classmethod
+    def register(cls, type_name: str):
+        def decorator(subclass):
+            cls._REGISTRY[type_name] = subclass
+            return subclass
+        return decorator
+
+    @classmethod
+    def create(cls, name: str, id_: str, type_: str):
+        boundary_cls = cls._REGISTRY.get(type_, NotImplementedBoundary)
+        return boundary_cls(name, id_)
+
+
 # ------------------------------------------------- shared to_dict helpers
 
 TURBULENCE_KEYS = (
@@ -148,22 +164,6 @@ def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
     else:
         for key in RADIATION_KEYS:
             data.pop(key, None)
-
-
-class BoundaryFactory:
-    _REGISTRY = {}
-
-    @classmethod
-    def register(cls, type_name: str):
-        def decorator(subclass):
-            cls._REGISTRY[type_name] = subclass
-            return subclass
-        return decorator
-
-    @classmethod
-    def create(cls, name: str, id_: str, type_: str):
-        boundary_cls = cls._REGISTRY.get(type_, NotImplementedBoundary)
-        return boundary_cls(name, id_)
 
 
 # region Cell Zone

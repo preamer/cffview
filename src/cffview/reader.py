@@ -13,8 +13,6 @@ from typing import Any, Callable, TypeAlias, Union
 
 import sexpdata
 
-from .boundary import BoundaryFactory
-
 NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
 
 # from Ansys Fluent sg.h
@@ -291,9 +289,8 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
 
 @register_reader('bd')
 def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
-    boundaries = stringify_nested_list(
-        sexpdata.parse(texts.boundary, true=None)
-    )
+    from .boundary import BoundaryFactory
+    boundaries = stringify_nested_list(sexpdata.parse(texts.boundary, true=None))
 
     data: dict[str, Any] = {}
     for boundary_info in boundaries:
