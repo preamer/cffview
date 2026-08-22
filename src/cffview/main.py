@@ -305,13 +305,6 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         type=str,
         help="path to the input file",
     )
-    parser.add_argument(
-        "--save",
-        nargs="?",
-        default=False,
-        metavar="OUTPUT_FILE_NAME",
-        help="output file name (if not specified, the same as the input file)",
-    )
 
     ARGUMENTS = [
         (("--version",), "show the version of the .h5 file"),
@@ -338,19 +331,26 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
     parser.add_argument(
+        "--units",
+        nargs="*",
+        default=False,
+        metavar="KEYWORD",
+        help="show unit table, optionally filtered by one or more keywords",
+    )
+    parser.add_argument(
+        "--save",
+        nargs="?",
+        default=False,
+        metavar="OUTPUT_FILE_NAME",
+        help="output file name (if not specified, the same as the input file)",
+    )
+    parser.add_argument(
         "--plot",
         nargs="?",
         const=True,
         default=False,
         metavar="TYPE",
         help="plot data file; TYPE is one of 'out', 'xy', 'dat' (inferred from the file extension when omitted)",
-    )
-    parser.add_argument(
-        "--units",
-        nargs="*",
-        default=False,
-        metavar="KEYWORD",
-        help="show unit table, optionally filtered by one or more keywords",
     )
 
     args = parser.parse_args()
