@@ -15,6 +15,7 @@ import sexpdata
 
 NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
 CaseTexts = namedtuple('CaseTexts', ['general', 'boundary', 'cortex'])
+ReaderFunc: TypeAlias = Callable[[CaseTexts], dict[str, Any]]
 
 # from Ansys Fluent sg.h
 DISCRETIZATION_SCHEME = {
@@ -196,12 +197,12 @@ def _(lst: list[str], return_expr: bool = False) -> str:
 # ------------------------------------------------------------- dispatcher
 
 
-READERS: dict[str, Callable[[CaseTexts], dict[str, Any]]] = {}
+READERS: dict[str, ReaderFunc] = {}
 
 
-def register_reader(name: str):
+def register_reader(name: str) -> Callable[[ReaderFunc], ReaderFunc]:
     """Register a reader function under a flag name."""
-    def decorator(func: Callable[[CaseTexts], dict[str, Any]]) -> Callable[[CaseTexts], dict[str, Any]]:
+    def decorator(func: ReaderFunc) -> ReaderFunc:
         READERS[name] = func
         return func
     return decorator

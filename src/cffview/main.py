@@ -243,7 +243,7 @@ def plot(file_path: str, out: bool = False, xy: bool = False, dat: bool = False)
             raise ValueError("Please specify --out, --xy or --dat")
 
 
-def plot_data(file_path: str):
+def plot_data(file_path: str) -> None:
     """Visualize Fluent .cas.h5 + .dat.h5 solution data with interactive cross-sections.
 
     Uses PyVista's built-in VTK FLUENTCFF Reader to load both mesh and solution data

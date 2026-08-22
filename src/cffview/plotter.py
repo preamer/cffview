@@ -8,7 +8,7 @@ variable switching, opacity and clip-plane widgets.
 import sys
 from functools import wraps
 
-from pyvista import _vtk, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
+from pyvista import _vtk, Actor, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
 
 from .utils import print_colored_dict
 
@@ -32,7 +32,7 @@ KEYBOARD_SHORTCUTS = {
 
 
 class BasePlotter:
-    def __init__(self, mesh: MultiBlock | PolyData):
+    def __init__(self, mesh: MultiBlock | PolyData) -> None:
         self.mesh = mesh.combine() if isinstance(mesh, MultiBlock) else mesh
 
         # Monkey patch to fix clip plane error
@@ -55,7 +55,7 @@ class BasePlotter:
         self.keyboard_shortcuts = KEYBOARD_SHORTCUTS
 
     @wraps(Plotter.show)
-    def show(self, *args, **kwargs):
+    def show(self, *args, **kwargs) -> None:
         print_colored_dict(self.keyboard_shortcuts)
         self.pl.show(*args, **kwargs)
 
@@ -63,7 +63,7 @@ class BasePlotter:
             self,
             checkbox_params: dict = None,
             text_params: dict = None,
-    ):
+    ) -> _vtk.vtkButtonWidget:
         checkbox_params = checkbox_params or {}
         text_params = text_params or {}
 
@@ -73,17 +73,17 @@ class BasePlotter:
                 checkbox_params['position'][1] + 10,
             )
 
-        check_box_widget = self.pl.add_checkbox_button_widget(**checkbox_params)
+        check_box_widget: _vtk.vtkButtonWidget = self.pl.add_checkbox_button_widget(**checkbox_params)
         check_box_widget.callback = checkbox_params['callback']
         self.pl.add_text(**text_params)
 
         return check_box_widget
 
-    def _add_grid_cb(self):
-        def toggle_grid(state: bool):
+    def _add_grid_cb(self) -> _vtk.vtkButtonWidget:
+        def toggle_grid(state: bool) -> None:
             self.pl.show_grid(font_size=10, fmt='%.2f') if state else self.pl.remove_bounds_axes()
 
-        grid_cb = self._add_checkbox_and_text(
+        grid_cb: _vtk.vtkButtonWidget = self._add_checkbox_and_text(
             checkbox_params=dict(
                 callback=toggle_grid,
                 value=False,
@@ -98,13 +98,13 @@ class BasePlotter:
         return grid_cb
 
     def _add_keyboard_shortcuts(self, key_widget_dict: dict[str, tuple[_vtk.vtkButtonWidget | _vtk.vtkSliderWidget, str]]):
-        def reverse(checkbox_button_widget: _vtk.vtkButtonWidget):
+        def reverse(checkbox_button_widget: _vtk.vtkButtonWidget) -> None:
             rep = checkbox_button_widget.button_representation
             new_state = not rep.state
             rep.state = new_state
             checkbox_button_widget.callback(new_state)
 
-        def set_value(slider_widget: _vtk.vtkSliderWidget, new_value: int):
+        def set_value(slider_widget: _vtk.vtkSliderWidget, new_value: int) -> None:
             slider_widget.slider_representation.value = new_value
             slider_widget.callback(new_value)
 
@@ -117,7 +117,7 @@ class BasePlotter:
 
 
 class MeshPlotter(BasePlotter):
-    def __init__(self, mesh, dimension: int = None):
+    def __init__(self, mesh, dimension: int = None) -> None:
         super().__init__(mesh)
         self.dimension = dimension
         self.mesh_actor = self._add_mesh()
@@ -132,7 +132,7 @@ class MeshPlotter(BasePlotter):
             }
         )
 
-    def _add_mesh(self):
+    def _add_mesh(self) -> Actor:
         mesh_actor = self.pl.add_mesh(
             self.mesh,
             show_edges=True,
@@ -140,8 +140,8 @@ class MeshPlotter(BasePlotter):
         )
         return mesh_actor
 
-    def _add_opcatity_slider(self):
-        opacity_slider_widget = self.pl.add_slider_widget(
+    def _add_opcatity_slider(self) -> _vtk.vtkSliderWidget:
+        opacity_slider_widget: _vtk.vtkSliderWidget = self.pl.add_slider_widget(
             lambda value: setattr(self.mesh_actor.prop, 'opacity', value),
             rng=(0.1, 1.0),
             value=1.0,
@@ -155,14 +155,14 @@ class MeshPlotter(BasePlotter):
         )
         return opacity_slider_widget
 
-    def _add_mesh_clip_plane(self):
+    def _add_mesh_clip_plane(self) -> None:
         self.mesh_clip_plane_actor = self.pl.add_mesh_clip_plane(self.mesh, show_edges=True)
         self.mesh_clip_plane_actor.visibility = False
         self.clip_plane = self.pl.widgets.plane_widgets[-1]
         self.clip_plane.Off()
 
-    def _add_clip_plane_cb(self):
-        def toggle_clip_plane(state):
+    def _add_clip_plane_cb(self) -> _vtk.vtkButtonWidget:
+        def toggle_clip_plane(state) -> None:
             if state:
                 self.mesh_actor.visibility = False
                 self.opacity_slider_widget.Off()
@@ -190,7 +190,7 @@ class MeshPlotter(BasePlotter):
 
 
 class DataPlotter(BasePlotter):
-    def __init__(self, mesh: MultiBlock | PolyData, var_names: tuple[str]):
+    def __init__(self, mesh: MultiBlock | PolyData, var_names: tuple[str]) -> None:
         super().__init__(mesh)
         self.var_names = var_names
 
@@ -254,11 +254,11 @@ class DataPlotter(BasePlotter):
         self.scalar_bar.title = name
         self.pl.render()
 
-    def _add_scalar_slider_widget(self):
-        def change_scalar(value: float):
+    def _add_scalar_slider_widget(self) -> _vtk.vtkSliderWidget:
+        def change_scalar(value: float) -> None:
             self._set_scalars(self.var_names[int(value)])
 
-        scalar_slider = self.pl.add_slider_widget(
+        scalar_slider: _vtk.vtkSliderWidget = self.pl.add_slider_widget(
             change_scalar,
             rng=(0, len(self.var_names) - 1),
             value=0,
@@ -274,8 +274,8 @@ class DataPlotter(BasePlotter):
         scalar_slider.callback = change_scalar
         return scalar_slider
 
-    def _add_clip_plane_cb(self):
-        def toggle_clip_plane(state):
+    def _add_clip_plane_cb(self) -> _vtk.vtkButtonWidget:
+        def toggle_clip_plane(state) -> None:
             if state:
                 self.mesh_actor.visibility = False
                 self.mesh_clip_plane_actor.visibility = True
