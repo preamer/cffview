@@ -355,23 +355,19 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
 
     args = parser.parse_args()
 
-    plot_mode = args.plot if isinstance(args.plot, str) else None
-    if plot_mode not in (None, 'out', 'xy', 'dat'):
-        parser.error(f"invalid --plot mode: '{plot_mode}' (choose from 'out', 'xy', 'dat')")
-
-    if not args.file_path.endswith((".cas.h5", ".msh.h5")) and plot_mode is None and args.plot is False:
+    if not args.file_path.endswith((".cas.h5", ".msh.h5")) and args.plot is False:
         parser.error("Invalid arguments, please provide a .cas.h5 or .msh.h5 file or add --plot argument to plot file")
 
     if args.version:
         print_version(args.file_path)
     elif args.extract:
         extract_h5(args.file_path)
-    elif plot_mode is not None or args.plot is not False:
+    elif args.plot:
         plot(
             args.file_path,
-            out=plot_mode == 'out',
-            xy=plot_mode == 'xy',
-            dat=plot_mode == 'dat',
+            out=args.plot == 'out',
+            xy=args.plot == 'xy',
+            dat=args.plot == 'dat',
         )
     elif args.file_path.endswith(".msh.h5"):
         show_mesh(args.file_path)

@@ -339,9 +339,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
 def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     interfaces = re.search(r'(\(sliding-interfaces\s+.*)', general, re.M).group(1)
-    interfaces_list = stringify_nested_list(
-        sexpdata.loads(interfaces, true=None)[1]
-    )
+    interfaces_list = stringify_nested_list(sexpdata.loads(interfaces, true=None)[1])
 
     data: dict[str, Any] = {}
     for interface in interfaces_list:
@@ -766,12 +764,6 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     dict[str, Any]
         A dictionary containing the case settings.
     """
-    unknown = set(flags) - set(READERS)
-    if unknown:
-        raise TypeError(
-            f'read_case() got unexpected keyword argument(s): {", ".join(sorted(unknown))}'
-        )
-
     if not any(flags.values()):  # no section requested -> read everything
         flags = dict.fromkeys(READERS, True)
 
