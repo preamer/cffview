@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--cff` / `--custom-field-functions` for showing custom field functions defined in the Cortex Variables.
+- `--units [KEYWORD ...]` for showing the unit table, optionally filtered by one or more keywords; an empty table means the default SI unit system.
+- `average-over-state` and `iter-range` values for `--report-definitions`.
+- Mass flow rate / mass flux fields (`flow-spec`, `mass-flux`, ...) for mass-flow inlet and outlet boundaries.
+
+### Changed
+
+- `--plot` now takes an optional mode argument (`--plot out|xy|dat`); the standalone `--out` / `--xy` / `--dat` flags were removed, and the mode is inferred from the file extension when omitted.
+
 ## [v0.4.1] - 2026-08-18
 
 ### Added
