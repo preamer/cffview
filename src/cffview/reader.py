@@ -7,13 +7,14 @@ requested readers and merges their results.
 """
 
 import re
-from dataclasses import dataclass
+from collections import namedtuple
 from functools import lru_cache, singledispatch
 from typing import Any, Callable, TypeAlias, Union
 
 import sexpdata
 
 NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
+CaseTexts = namedtuple('CaseTexts', ['general', 'boundary', 'cortex'])
 
 # from Ansys Fluent sg.h
 DISCRETIZATION_SCHEME = {
@@ -64,15 +65,6 @@ TURB_MODEL_KEYS = [
 ]
 
 RADIATION_MODEL_KEYS = ['sg-rosseland?', 'sg-p1?', 'sg-dtrm?', 'sg-s2s?', 'sg-disco?']
-
-
-@dataclass(frozen=True)
-class CaseTexts:
-    """Raw Scheme strings stored in the ``/settings`` group of a .cas.h5 file."""
-
-    general: str
-    boundary: str = ''
-    cortex: str = ''
 
 
 # ------------------------------------------------------------ shared helpers
