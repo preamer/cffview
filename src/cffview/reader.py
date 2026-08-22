@@ -288,30 +288,12 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
     for boundary_info in boundaries:
         id_, type_, name, _ = [_ for _ in boundary_info[1]]
         new_boundary = BoundaryFactory.create(name, id_, type_)
-        b_list = data.get(type_, [])
+        b_list: list[dict[str, str | dict[str, str]]] = data.get(type_, [])
 
-        for property_ in filter(lambda x: len(x) > 1, boundary_info[2]):
-            property_name = property_[0].replace('-', '_').replace('?', '').replace('/', '_')
+        for property_list in boundary_info[2]:
+            property_name = property_list[0].replace('-', '_').replace('?', '').replace('/', '_')
             if hasattr(new_boundary, property_name):
-                if isinstance(property_[1], list):
-                    if property_name == 'source_terms':
-                        source_terms_list = property_[1:]
-                        value = {}
-                        for source_term in filter(lambda x: len(x) > 1, source_terms_list):
-                            eq = source_term[0]
-                            value[eq] = {}
-                            source_property = source_term[1]
-                            for source_property_ in filter(lambda x: len(x) == 3, source_property):
-                                property_name: str = source_property_[0]
-                                if property_name == 'profile':
-                                    value[eq][property_name] = f'{source_property_[1]}/{source_property_[2]}'
-                                elif source_property_[1] == '.':
-                                    value[eq][property_name] = source_property_[2]
-                        setattr(new_boundary, 'source_terms', value)
-                    else:
-                        setattr(new_boundary, property_name, _sel_expr(property_[1]))
-                else:
-                    setattr(new_boundary, property_name, _sel_expr(property_, return_expr=True))
+                setattr(new_boundary, property_name, BoundaryFactory.match_property(property_list))
 
         b_list.append(
             new_boundary.to_dict(_get_turb_model(texts.general), _get_radiation_model(texts.general))

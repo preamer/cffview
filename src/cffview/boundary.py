@@ -115,6 +115,28 @@ class BoundaryFactory:
         boundary_cls = cls._REGISTRY.get(type_, NotImplementedBoundary)
         return boundary_cls(name, id_)
 
+    @staticmethod
+    def match_property(property_list: list[str | list[str]]) -> str | dict[str, str]:
+        match property_list:
+            case [_]:
+                return ''
+            case [_, expr] | [_, '.', expr] if isinstance(expr, str):
+                return expr
+            case [_, x, y, z] if all(isinstance(i, str) for i in (x, y, z)):
+                return f'{x} {y} {z}'
+            case [_, [sel, '.', expr], *_]:
+                return f'{sel}/{expr}'
+            case [_, ['profile', sel, expr], *_]:
+                return f'profile/{sel}/{expr}'
+            case ['source-terms', *source_terms_list]:
+                for source_term in (st for st in source_terms_list if len(st) == 2):
+                    eq_name, source_property_list = source_term
+                    source_property = source_property_list[0]
+                    if source_property[1] == '.':
+                        return {eq_name: f'{source_property[0]}/{source_property[2]}'}
+                    elif source_property[0] == 'profile' and source_property[1]:
+                        return {eq_name: f'profile/{source_property[1]}/{source_property[2]}'}
+
 
 # ------------------------------------------------- shared to_dict helpers
 
