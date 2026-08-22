@@ -129,16 +129,19 @@ class BoundaryFactory:
             case [_, ['profile', sel, expr], *_]:
                 return f'profile/{sel}/{expr}'
             case ['source-terms', *source_terms_list]:
+                value = {}
                 for source_term in (st for st in source_terms_list if len(st) == 2):
                     eq_name, source_property_list = source_term
                     source_property = source_property_list[0]
                     if source_property[1] == '.':
-                        return {eq_name: f'{source_property[0]}/{source_property[2]}'}
+                        value[eq_name] = f'{source_property[0]}/{source_property[2]}'
                     elif source_property[0] == 'profile' and source_property[1]:
-                        return {eq_name: f'profile/{source_property[1]}/{source_property[2]}'}
+                        value[eq_name] = f'profile/{source_property[1]}/{source_property[2]}'
+                return value
 
 
 # ------------------------------------------------- shared to_dict helpers
+
 
 TURBULENCE_KEYS = (
     'ke_spec', 'turb_intensity', 'turb_length_scale',
