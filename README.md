@@ -71,6 +71,12 @@ cffview <file> [options]
 
 Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`, etc.) apply to `.cas.h5` files only.
 
+> [!TIP]
+> Long options can be abbreviated to any unambiguous prefix. For example,
+> `--inter` works for `--interfaces` and `--so` for `--solver`. An ambiguous
+> prefix (e.g. `--i`, which could match `--interfaces` or `--iter`) is
+> rejected with an error.
+
 ### Examples
 
 ```bash
