@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.3] - 2026-08-22
+
+### Fixed
+
+- `source_terms` parsing error for `Solid` and `Fluid` boundary.
+
 ## [v0.4.2] - 2026-08-22
 
 ### Added
