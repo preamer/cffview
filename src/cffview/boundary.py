@@ -166,6 +166,8 @@ class BoundaryFactory:
         return boundary_cls(name, id_)
 
 
+# region Cell Zone
+
 @dataclass
 @BoundaryFactory.register('fluid')
 class Fluid:
@@ -214,6 +216,10 @@ class Solid:
 
         return data
 
+# endregion Cell Zone
+
+
+# region Inlet
 
 @dataclass
 @BoundaryFactory.register('velocity-inlet')
@@ -330,53 +336,6 @@ class MassFlowInlet:
 
 
 @dataclass
-@BoundaryFactory.register('mass-flow-outlet')
-class MassFlowOutlet:
-    name: str
-    id_: str
-
-    # region momentum
-    flow_spec: str = ''
-    mass_flow: str = ''
-    mass_flux: str = ''
-    mass_flux_ave: str = ''
-    frame_of_reference: str = ''
-
-    ke_spec: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
-    # endregion momentum
-
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
-
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_turbulence(data, turb_model)
-        _filter_radiation(data, rad_model)
-
-        match data['flow_spec']:
-            case 'Mass Flow Rate':
-                data.pop('mass_flux', None)
-                data.pop('mass_flux_ave', None)
-            case 'Mass Flux':
-                data.pop('mass_flow', None)
-                data.pop('mass_flux_ave', None)
-            case 'Mass Flux with Average Mass Flux':
-                data.pop('mass_flow', None)
-
-        return data
-
-
-@dataclass
 @BoundaryFactory.register('pressure-inlet')
 class PressureInlet:
     name: str
@@ -425,6 +384,31 @@ class PressureInlet:
         _filter_radiation(data, rad_model)
         return data
 
+
+@dataclass
+@BoundaryFactory.register('intake-fan')
+class IntakeFan:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('inlet-vent')
+class InletVent:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('pressure-far-field')
+class PressureFarField:
+    name: str
+    id_: str
+
+# endregion Inlet
+
+
+# region Outlet
 
 @dataclass
 @BoundaryFactory.register('pressure-outlet')
@@ -476,6 +460,53 @@ class PressureOutlet:
 
 
 @dataclass
+@BoundaryFactory.register('mass-flow-outlet')
+class MassFlowOutlet:
+    name: str
+    id_: str
+
+    # region momentum
+    flow_spec: str = ''
+    mass_flow: str = ''
+    mass_flux: str = ''
+    mass_flux_ave: str = ''
+    frame_of_reference: str = ''
+
+    ke_spec: str = ''
+    turb_intensity: str = ''
+    turb_length_scale: str = ''
+    turb_hydraulic_diam: str = ''
+    turb_viscosity_ratio: str = ''
+    # endregion momentum
+
+    # region radiation
+    radiation_bc: str = ''
+    in_emiss: str = ''
+    t_b_b_spec: str = ''
+    t_b_b: str = ''
+    # endregion radiation
+
+    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+        data = self.__dict__.copy()
+
+        _map_consts(data)
+        _filter_turbulence(data, turb_model)
+        _filter_radiation(data, rad_model)
+
+        match data['flow_spec']:
+            case 'Mass Flow Rate':
+                data.pop('mass_flux', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux':
+                data.pop('mass_flow', None)
+                data.pop('mass_flux_ave', None)
+            case 'Mass Flux with Average Mass Flux':
+                data.pop('mass_flow', None)
+
+        return data
+
+
+@dataclass
 @BoundaryFactory.register('outflow')
 class Outflow:
     name: str
@@ -494,6 +525,25 @@ class Outflow:
 
         return data
 
+
+@dataclass
+@BoundaryFactory.register('exhaust-fan')
+class ExhaustFan:
+    name: str
+    id_: str
+
+
+@dataclass
+@BoundaryFactory.register('outlet-vent')
+class OutletVent:
+    name: str
+    id_: str
+
+
+# endregion Outlet
+
+
+# region Wall
 
 @dataclass
 @BoundaryFactory.register('wall')
@@ -578,40 +628,17 @@ class Wall:
 
         return data
 
+# endregion Wall
+
+
+# region Internal
 
 @dataclass
-@BoundaryFactory.register('intake-fan')
-class IntakeFan:
+@BoundaryFactory.register('interior')
+class Interior:
     name: str
     id_: str
-
-
-@dataclass
-@BoundaryFactory.register('exhaust-fan')
-class ExhaustFan:
-    name: str
-    id_: str
-
-
-@dataclass
-@BoundaryFactory.register('inlet-vent')
-class InletVent:
-    name: str
-    id_: str
-
-
-@dataclass
-@BoundaryFactory.register('outlet-vent')
-class OutletVent:
-    name: str
-    id_: str
-
-
-@dataclass
-@BoundaryFactory.register('pressure-far-field')
-class PressureFarField:
-    name: str
-    id_: str
+    is_not_a_rans_les_interface: str = ''
 
 
 @dataclass
@@ -637,14 +664,10 @@ class Radiator:
     name: str
     id_: str
 
+# endregion Internal
 
-@dataclass
-@BoundaryFactory.register('interior')
-class Interior:
-    name: str
-    id_: str
-    is_not_a_rans_les_interface: str = ''
 
+# region Interface
 
 @dataclass
 @BoundaryFactory.register('interface')
@@ -652,6 +675,10 @@ class Interface:
     name: str
     id_: str
 
+# endregion Interface
+
+
+# region Overset
 
 @dataclass
 @BoundaryFactory.register('overset')
@@ -659,6 +686,10 @@ class Overset:
     name: str
     id_: str
 
+# endregion Overset
+
+
+# region Symmetry
 
 @dataclass
 @BoundaryFactory.register('symmetry')
@@ -666,6 +697,10 @@ class Symmetry:
     name: str
     id_: str
 
+# endregion Symmetry
+
+
+# region Axis
 
 @dataclass
 @BoundaryFactory.register('axis')
@@ -673,6 +708,10 @@ class Axis:
     name: str
     id_: str
 
+# endregion Axis
+
+
+# region Periodic
 
 @dataclass
 @BoundaryFactory.register('periodic')
@@ -686,6 +725,8 @@ class Periodic:
     shift_x: str = ''
     shift_y: str = ''
     shift_z: str = ''
+
+# endregion Periodic
 
 
 @dataclass
