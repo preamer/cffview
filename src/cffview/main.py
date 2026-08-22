@@ -368,15 +368,10 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         elif args.data:
             plot_data(args.file_path)
         else:
-            from .reader import read_case
             from .utils import print_colored_dict
-            keys = [
-                'solver', 'mat', 'bd', 'ne', 'cff', 'units', 'disc', 'rd', 'interfaces',
-                'plotsets', 'monitorsets', 'residuals', 'iter', 'surfaces',
-                'contours', 'vectors', 'xy_plot',
-            ]
-            kwargs = {k: getattr(args, k) for k in keys}
-            if args.units is not False:  # --units 出现（含裸用），[] 是 falsy 需单独处理
+            from .reader import read_case, READERS
+            kwargs = {k: getattr(args, k) for k in READERS.keys()}
+            if args.units is not False:
                 kwargs['units'] = True
             output = read_case(args.file_path, **kwargs)
             if isinstance(args.units, list) and args.units:

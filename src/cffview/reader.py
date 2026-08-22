@@ -203,9 +203,24 @@ def _(lst: list[str]) -> str:
         return lst[0]
 
 
+# ------------------------------------------------------------- dispatcher
+
+
+READERS: dict[str, Callable[[CaseTexts], dict[str, Any]]] = {}
+
+
+def register_reader(name: str):
+    """Register a reader function under a flag name."""
+    def decorator(func: Callable[[CaseTexts], dict[str, Any]]) -> Callable[[CaseTexts], dict[str, Any]]:
+        READERS[name] = func
+        return func
+    return decorator
+
+
 # ------------------------------------------------------------------- solver
 
 
+@register_reader('solver')
 def _read_solver(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     kvs = _parse_case_config(general)
@@ -233,6 +248,7 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------------- materials
 
 
+@register_reader('mat')
 def _read_materials(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     materials = re.search(r'(\(materials.*)', general, re.M).group(1)
@@ -273,6 +289,7 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------------- boundary
 
 
+@register_reader('bd')
 def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
     boundaries = stringify_nested_list(
         sexpdata.parse(texts.boundary, true=None)
@@ -321,6 +338,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
 # --------------------------------------------------------------- interfaces
 
 
+@register_reader('interfaces')
 def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     interfaces = re.search(r'(\(sliding-interfaces\s+.*)', general, re.M).group(1)
@@ -338,27 +356,10 @@ def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
     return {'interfaces': data}
 
 
-# ------------------------------------------------------- named expressions
+# ---------------------------------------------------- custom field functions
 
 
-def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    nes = re.search(r'(\(named-expressions.*)', general, re.M).group(1)
-    nes_list = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for ne in nes_list:
-        ne_dict = {
-            property_[0]: property_[2]
-            for property_ in ne
-        }
-        data[ne_dict['name']] = ne_dict
-    return {'named-expressions': data}
-
-
-# --------------------------------------------------------- custom field functions
-
-
+@register_reader('cff')
 def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
     cortex = texts.cortex
     cffs = re.search(r'(\(cell-function-defs\s+.*)', cortex, re.M)
@@ -378,11 +379,12 @@ def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------------- unit table
 
 
+@register_reader('units')
 def _read_units(texts: CaseTexts) -> dict[str, Any]:
     """Parse the unit table from Cortex Variables; empty means default SI units."""
     units = re.search(r'(\(unit-table\s+.*?\)\s*\))', texts.cortex, re.M)
     if units is None:
-        return {'units': 'Default SI units.'}
+        return {'units': 'Default SI units'}
     entries = re.findall(
         r'\(([^()\s]+)\s+([^()\s]+)\s+([^()\s]+)\s+([^()\s]+)\)',
         units.group(1),
@@ -395,9 +397,29 @@ def _read_units(texts: CaseTexts) -> dict[str, Any]:
     }
 
 
+# ------------------------------------------------------- named expressions
+
+
+@register_reader('ne')
+def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    nes = re.search(r'(\(named-expressions.*)', general, re.M).group(1)
+    nes_list = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for ne in nes_list:
+        ne_dict = {
+            property_[0]: property_[2]
+            for property_ in ne
+        }
+        data[ne_dict['name']] = ne_dict
+    return {'named-expressions': data}
+
+
 # --------------------------------------------- discretisation & relaxation
 
 
+@register_reader('disc')
 def _read_disc(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     disc_scheme = {
@@ -434,6 +456,7 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
 # ------------------------------------------------------ report definitions
 
 
+@register_reader('rd')
 def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     rds = re.search(r'(\(monitor/report-definitions.*)', general, re.M).group(1)
@@ -474,7 +497,7 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
             data[name]['average-over-state'] = value
         else:
             values = sum(rd[2][2:], [])
-            right_order_ids: list[str] = list(data[name].values())[-2]
+            right_order_ids = data[name].get('zone-list') or data[name].get('surface-ids') or data[name].get('zone-ids')
             sorted_values = [0] * len(values)
             for i, v in zip(ids, values):
                 sorted_values[right_order_ids.index(i)] = v
@@ -486,6 +509,7 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
 # ------------------------------------------------------------- plot/monitor
 
 
+@register_reader('plotsets')
 def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     plotsets = re.search(r'(\(monitor/plotsets.*)', general, re.M).group(1)
@@ -503,6 +527,7 @@ def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
     return {'plotsets': data}
 
 
+@register_reader('monitorsets')
 def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     monitorsets = re.search(r'(\(monitor/monitorsets.*)', general, re.M).group(1)
@@ -523,6 +548,7 @@ def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------------- residuals
 
 
+@register_reader('residuals')
 def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     data: dict[str, Any] = {}
@@ -557,6 +583,7 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
 # -------------------------------------------------------------- iteration
 
 
+@register_reader('iter')
 def _read_iter(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     data: dict[str, Any] = {}
@@ -573,6 +600,7 @@ def _read_iter(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------------- surfaces
 
 
+@register_reader('surfaces')
 def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
     cortex = texts.cortex
 
@@ -632,6 +660,7 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------- graphics items
 
 
+@register_reader('contours')
 def _read_contours(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     contours = re.search(r'(\(graphics/contours.*)', general, re.M).group(1)
@@ -661,6 +690,7 @@ def _read_contours(texts: CaseTexts) -> dict[str, Any]:
     return {'contours': data}
 
 
+@register_reader('vectors')
 def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     vectors = re.search(r'(\(graphics/vectors\s.*)', general, re.M).group(1)
@@ -698,6 +728,7 @@ def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
     return {'vectors': data}
 
 
+@register_reader('xy_plot')
 def _read_xy_plot(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     xy_plots = re.search(r'(\(graphics/xy-plot.*)', general, re.M).group(1)
@@ -722,33 +753,10 @@ def _read_xy_plot(texts: CaseTexts) -> dict[str, Any]:
 # ------------------------------------------------------------- dispatcher
 
 
-READERS: dict[str, Callable[[CaseTexts], dict[str, Any]]] = {
-    'solver': _read_solver,
-    'mat': _read_materials,
-    'bd': _read_boundary,
-    'interfaces': _read_interfaces,
-    'ne': _read_named_expressions,
-    'cff': _read_custom_field_functions,
-    'units': _read_units,
-    'disc': _read_disc,
-    'rd': _read_report_definitions,
-    'plotsets': _read_plotsets,
-    'monitorsets': _read_monitorsets,
-    'residuals': _read_residuals,
-    'iter': _read_iter,
-    'surfaces': _read_surfaces,
-    'contours': _read_contours,
-    'vectors': _read_vectors,
-    'xy_plot': _read_xy_plot,
-}
-
-
 def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     """Read settings from a Fluent ``.cas.h5`` file.
 
-    Each keyword flag (``solver``, ``mat``, ``bd``, ``interfaces``, ``ne``,
-    ``disc``, ``rd``, ``plotsets``, ``monitorsets``, ``residuals``, ``iter``,
-    ``surfaces``, ``contours``, ``vectors``, ``xy_plot``) enables reading the
+    Each keyword flag (``solver``, ``mat``, ``bd``, ...) enables reading the
     corresponding section. With no flags given, every section is read.
 
     Parameters
@@ -781,6 +789,3 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
         if flags.get(key):
             data.update(reader(texts))
     return data
-
-
-__all__ = ['read_case', 'READERS', 'CaseTexts']
