@@ -180,15 +180,15 @@ def _(general: str, name: str) -> str:
 
 
 @_sel_expr.register(list)
-def _(lst: list[str]) -> str:
+def _(lst: list[str], return_expr: bool = False) -> str:
     """Get sel/expr pair in list like ['constant', '.', '1'], ['profile', '12'], ..."""
     if len(lst) == 3 and lst[1] == '.':
-        return f'{lst[0]}/{lst[2]}'
+        return lst[2] if return_expr else f'{lst[0]}/{lst[2]}'
     elif len(lst) == 2:
-        return f'{lst[0]}/{lst[1]}'
+        return lst[1] if return_expr else f'{lst[0]}/{lst[1]}'
     elif len(lst) > 1:
         rest = str(list(lst[1:])).strip('[]')
-        return f'{lst[0]}/{rest}'
+        return rest if return_expr else f'{lst[0]}/{rest}'
     else:
         return lst[0]
 
@@ -293,11 +293,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
         for property_ in filter(lambda x: len(x) > 1, boundary_info[2]):
             property_name = property_[0].replace('-', '_').replace('?', '').replace('/', '_')
             if hasattr(new_boundary, property_name):
-                if property_[1] == '.':
-                    setattr(new_boundary, property_name, property_[2])
-                elif len(property_) == 2:
-                    setattr(new_boundary, property_name, property_[1])
-                elif isinstance(property_[1], list):
+                if isinstance(property_[1], list):
                     if property_name == 'source_terms':
                         source_terms_list = property_[1:]
                         value = {}
@@ -314,6 +310,8 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
                         setattr(new_boundary, 'source_terms', value)
                     else:
                         setattr(new_boundary, property_name, _sel_expr(property_[1]))
+                else:
+                    setattr(new_boundary, property_name, _sel_expr(property_, return_expr=True))
 
         b_list.append(
             new_boundary.to_dict(_get_turb_model(texts.general), _get_radiation_model(texts.general))
