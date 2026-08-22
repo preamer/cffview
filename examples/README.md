@@ -40,8 +40,8 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 
 | File | cffview option | Contents |
 |---|---|---|
-| `1p-ps40.xy` | `--plot --xy` | Fluent XY-plot export (title, axis titles, per-curve data) |
-| `mass-rfile.out` | `--plot --out` | Fluent report output file (report definitions + data) |
+| `1p-ps40.xy` | `--plot xy` | Fluent XY-plot export (title, axis titles, per-curve data) |
+| `mass-rfile.out` | `--plot out` | Fluent report output file (report definitions + data) |
 
 ## How they were generated
 
