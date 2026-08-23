@@ -251,29 +251,33 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
         data[name] = {'type': material[1]}
         for property_ in material[2:]:
             property_name = property_[0]
-            if property_[1] == '.':
-                data[name][property_name] = property_[2]
-            elif isinstance(property_value_list := property_[1], list):
-                if property_value_list[1] == '.':
-                    data[name][property_name] = f'{property_value_list[0]}/{property_value_list[2]}'
-                elif property_value_list[1] == 'piecewise-linear':
-                    value = [f'{p[0]}, {p[2]}' for p in property_value_list[2:]]
-                    data[name][property_name] = {f'{property_value_list[0]}/{property_value_list[1]}': value}
-                elif property_value_list[1] in ['piecewise-polynomial', 'nasa-9-piecewise-polynomial']:
-                    value = [str(p).strip('[]') for p in property_value_list[2:]]
-                    data[name][property_name] = {f'{property_value_list[0]}/{property_value_list[1]}': value}
-                elif property_value_list[0] == 'orthotropic':
+            match property_[1:]:
+                case ['.', value]:
+                    data[name][property_name] = value
+                case [[sel, '.', expr], *_]:
+                    data[name][property_name] = f'{sel}/{expr}'
+                case [['polynomial', 'piecewise-linear', *values_list], *_]:
+                    data[name][property_name] = {
+                        f'polynomial/piecewise-linear': [f'{v[0]}, {v[2]}' for v in values_list]
+                    }
+                case [['polynomial', polynomial_type, *values_list], *_] if polynomial_type in ('piecewise-polynomial', 'nasa-9-piecewise-polynomial'):
+                    data[name][property_name] = {
+                        f'polynomial/{polynomial_type}': [str(v).strip('[]') for v in values_list]
+                    }
+                case [['polynomial', *values_list], *_]:
+                    data[name][property_name] = {f'polynomial': [str(v).strip('[]') for v in values_list]}
+                case [['orthotropic', *orth_properties], *_]:
                     value = {}
-                    for p in property_value_list[1:]:
-                        orth_property_name = p[0]
-                        if orth_property_name in ['direction-0', 'direction-1', 'direction-2']:
-                            value[orth_property_name] = [int(i) for i in p[1:]]
-                        elif orth_property_name in ['k0', 'k1', 'k2']:
-                            value[orth_property_name] = _sel_expr(p[1])
-                    data[name][property_name] = {property_value_list[0]: value}
-                else:
-                    value = ' '.join(str(p) for p in property_value_list[1:])
-                    data[name][property_name] = f'{property_value_list[0]}/{value}'
+                    for orth_property in orth_properties:
+                        orth_property_name = orth_property[0]
+                        if orth_property_name in ('direction-0', 'direction-1', 'direction-2'):
+                            value[orth_property_name] = str([int(i) for i in orth_property[1:]]).strip('[]')
+                        elif orth_property_name in ('k0', 'k1', 'k2'):
+                            value[orth_property_name] = _sel_expr(orth_property[1])
+                    data[name][property_name] = value
+                case _:
+                    value = ' '.join(str(p) for p in property_[1:])
+                    data[name][property_name] = f'{property_[0]}/{value}'
     return {'materials': data}
 
 
