@@ -298,7 +298,27 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
         for property_list in boundary_info[2]:
             property_name = property_list[0].replace('-', '_').replace('?', '').replace('/', '_')
             if hasattr(new_boundary, property_name):
-                setattr(new_boundary, property_name, BoundaryFactory.match_property(property_list))
+                match property_list:
+                    case [_, expr] | [_, '.', expr] if isinstance(expr, str):
+                        value = expr
+                    case [_, x, y, z] if all(isinstance(i, str) for i in (x, y, z)):
+                        value = f'{x} {y} {z}'
+                    case [_, [sel, '.', expr], *_]:
+                        value = f'{sel}/{expr}'
+                    case [_, ['profile', sel, expr], *_]:
+                        value = f'profile/{sel}/{expr}'
+                    case ['source-terms', *source_terms_list]:
+                        value = {}
+                        for source_term in (st for st in source_terms_list if len(st) == 2):
+                            eq_name, source_property_list = source_term
+                            source_property = source_property_list[0]
+                            if source_property[1] == '.':
+                                value[eq_name] = f'{source_property[0]}/{source_property[2]}'
+                            elif source_property[0] == 'profile' and source_property[1]:
+                                value[eq_name] = f'profile/{source_property[1]}/{source_property[2]}'
+                    case _:
+                        value = ''
+                setattr(new_boundary, property_name, value)
 
         b_list.append(
             new_boundary.to_dict(_get_turb_model(texts.general), _get_radiation_model(texts.general))
@@ -321,10 +341,13 @@ def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for interface in interfaces_list:
         name = interface[0]
-        data[name] = {
-            property_[0]: property_[2] if len(property_) == 3 else property_[1]
-            for property_ in filter(lambda x: len(x) > 1, interface[1:])
-        }
+        data[name] = {}
+        for interface_property in interface[1:]:
+            match interface_property:
+                case [property_name, '.', value] | [property_name, value]:
+                    data[name][property_name] = value
+                case _:
+                    continue
     return {'interfaces': data}
 
 
@@ -440,34 +463,26 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
         report_def = rd[1]
         type_ = report_def[1]
         data[name] = {'type': type_}
-        property_dict = {
-            property_[0]: property_[2]
-            for property_ in report_def[2:]
-            if len(property_) == 3 and property_[1] == '.'
-        }
-        data[name].update(property_dict)
-        if 'volume' in type_:
-            data[name]['zone-list'] = [zone for zone in report_def[4][1:]]
-            data[name]['zone-names'] = [zone for zone in report_def[6][1:]]
-        elif 'surface' in type_:
-            data[name]['surface-ids'] = [surface for surface in report_def[4][1:]]
-            data[name]['surface-names'] = [surface for surface in report_def[5][1:]]
-        elif 'flux' in type_:
-            data[name]['zone-ids'] = [zone for zone in report_def[2][1:]]
-            data[name]['zone-names'] = [zone for zone in report_def[3][1:]]
+        for report_property in report_def[2:]:
+            match report_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case [prop_name, *values] if prop_name not in ('old-props', 'locations'):
+                    data[name][prop_name] = values
+                case _:
+                    continue
 
     avg_over_state = re.search(r'(\(monitor/average-over-state.*)', general, re.M).group(1)
     avg_over_state_list = stringify_nested_list(sexpdata.loads(avg_over_state, true=None)[1])
     for rd in avg_over_state_list:
         name = rd[0]
-        ids = [id_.split('.')[0] for id_ in rd[1]]
-        iter_range = rd[2][:2]
-        data[name]['iter-range'] = ' -> '.join(iter_range)
+        data[name]['iter-range'] = rd[2][0] + ' -> ' + rd[2][1]
 
         if data[name].get('per-zone?') == '#f' or data[name].get('per-surface?') == '#f':
             value = rd[2][2]
             data[name]['average-over-state'] = value
         else:
+            ids = [id_.split('.')[0] for id_ in rd[1]]
             values = sum(rd[2][2:], [])
             right_order_ids = data[name].get('zone-list') or data[name].get('surface-ids') or data[name].get('zone-ids')
             sorted_values = [0] * len(values)
@@ -489,13 +504,16 @@ def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     for plotset in plotsets_list:
-        plotset_dict = {
-            property_[0]: property_[2]
-            for property_ in plotset
-            if property_[0] not in ['old-props', 'report-defs']
-        }
-        plotset_dict['report-defs'] = plotset[6][1:]
-        data[plotset_dict['name']] = plotset_dict
+        name = plotset[0][2]
+        data[name] = {}
+        for plotset_property in plotset[1:]:
+            match plotset_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case [prop_name, *values] if prop_name not in ('old-props'):
+                    data[name][prop_name] = values
+                case _:
+                    continue
     return {'plotsets': data}
 
 
@@ -507,13 +525,16 @@ def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     for monitorset in monitorsets_list:
-        monitorset_dict = {
-            property_[0]: property_[2]
-            for property_ in monitorset
-            if property_[0] not in ['old-props', 'report-defs']
-        }
-        monitorset_dict['report-defs'] = monitorset[-4][1:]
-        data[monitorset_dict['name']] = monitorset_dict
+        name = monitorset[0][2]
+        data[name] = {}
+        for monitorset_property in monitorset[1:]:
+            match monitorset_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case [prop_name, *values] if prop_name not in ('old-props'):
+                    data[name][prop_name] = values
+                case _:
+                    continue
     return {'monitorsets': data}
 
 
@@ -601,31 +622,29 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for surface_def in surface_def_list:
         surface = surface_def[2]
-        surface_type = surface[0]
-        match surface_type:
-            case 'line-surface':
-                virtual_id = surface[1]
+        match surface:
+            case ['line-surface', virtual_id, start, end]:
                 data[virtual_id_name_map[virtual_id]] = {
-                    'type': surface_type,
-                    'start': surface[2],
-                    'end': surface[3],
+                    'type': 'line-surface',
+                    'start': start,
+                    'end': end,
                 }
-            case 'plane-surface':
-                virtual_id = surface[1]
+            case ['plane-surface', virtual_id, point1, point2, point3, bounded, [ref_plane, direction_vector, ref_point]]:
                 data[virtual_id_name_map[virtual_id]] = {
-                    'type': surface_type,
-                    'point 1': surface[2],
-                    'point 2': surface[3],
-                    'point 3': surface[4],
-                    'bounded': surface[5],
+                    'type': 'plane-surface',
+                    'point 1': point1,
+                    'point 2': point2,
+                    'point 3': point3,
+                    'bounded': bounded,
                     'method': {
-                        'type': surface[6][0],
-                        'direction vector': surface[6][1],
-                        'reference point': surface[6][2],
-                    },
+                        'reference plane': ref_plane,
+                        'direction vector': direction_vector,
+                        'reference point': ref_point,
+                    }
                 }
             case _:
                 continue
+
     return {'surfaces': data}
 
 
@@ -640,25 +659,22 @@ def _read_contours(texts: CaseTexts) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     for contour in contours_list:
-        contour_dict = {
-            property_[0]: property_[2]
-            for property_ in contour
-            if property_[0] not in [
-                'locations', 'location-ids', 'options',
-                'range-options', 'range-option', 'surfaces-list',
-                'color-map', 'colorings', 'annotations-list',
-            ]
-        }
-        contour_dict['surface-list'] = contour[2][1]
-        contour_dict['range-options'] = {
-            range_option[0]: range_option[2]
-            for range_option in contour[6][1:]
-        }
-        contour_dict['color-map'] = {
-            color_map[0]: color_map[2]
-            for color_map in contour[-7][1:]
-        }
-        data[contour_dict['name']] = contour_dict
+        name = contour[0][2]
+        data[name] = {}
+        for contour_property in contour[1:]:
+            match contour_property:
+                case [property_name, '.', value]:
+                    data[name][property_name] = value
+                case ['surfaces-list', *surfaces_list]:
+                    data[name]['surfaces-list'] = surfaces_list
+                case [property_name, *values] if property_name in ('range-options', 'color-map'):
+                    data[name][property_name] = {
+                        value[0]: value[2]
+                        for value in values
+                    }
+                case _:
+                    continue
+
     return {'contours': data}
 
 
@@ -670,33 +686,22 @@ def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     for vector in vectors_list:
-        vector_dict = {
-            property_[0]: property_[2]
-            for property_ in vector
-            if property_[0] not in [
-                'locations', 'location-ids', 'options', 'scale',
-                'range-options', 'range-option', 'surfaces-list',
-                'color-map', 'vector-opt', 'annotations-list',
-            ]
-        }
-        vector_dict['surface-list'] = vector[3][1]
-        vector_dict['range-options'] = {
-            range_option[0]: range_option[2]
-            for range_option in vector[7][1:]
-        }
-        vector_dict['scale'] = {
-            scale[0]: scale[2]
-            for scale in vector[9][1:]
-        }
-        vector_dict['vector-opt'] = {
-            vector_opt[0]: vector_opt[2]
-            for vector_opt in vector[-6][1:]
-        }
-        vector_dict['color-map'] = {
-            color_map[0]: color_map[2]
-            for color_map in vector[-5][1:]
-        }
-        data[vector_dict['name']] = vector_dict
+        name = vector[0][2]
+        data[name] = {}
+        for vector_property in vector[1:]:
+            match vector_property:
+                case [property_name, '.', value]:
+                    data[name][property_name] = value
+                case ['surfaces-list', *surfaces_list]:
+                    data[name]['surfaces-list'] = surfaces_list
+                case [property_name, *values] if property_name in ('range-options', 'scale', 'vector-opt', 'color-map'):
+                    data[name][property_name] = {
+                        value[0]: value[2]
+                        for value in values
+                    }
+                case _:
+                    continue
+
     return {'vectors': data}
 
 
@@ -708,17 +713,19 @@ def _read_xy_plot(texts: CaseTexts) -> dict[str, Any]:
 
     data: dict[str, Any] = {}
     for xy_plot in xy_plots_list:
-        xy_plot_dict = {
-            property_[0]: property_[2]
-            for property_ in xy_plot
-            if property_[0] not in [
-                'options', 'x-axis-data', 'y-axis-data',
-                'surfaces-list', 'location-ids', 'locations',
-                'option', 'plot-direction', 'axes',
-            ]
-        }
-        xy_plot_dict['surfaces-list'] = xy_plot[7][1]
-        data[xy_plot_dict['name']] = xy_plot_dict
+        name = xy_plot[0][2]
+        data[name] = {}
+        for xy_plot_property in xy_plot[1:]:
+            match xy_plot_property:
+                case [property_name, '.', value]:
+                    data[name][property_name] = value
+                case ['surfaces-list', *surfaces_list]:
+                    data[name]['surfaces-list'] = surfaces_list
+                case [property_name, *values] if property_name == 'options':
+                    data[name][property_name] = {value[0]: value[2] for value in values}
+                case _:
+                    continue
+
     return {'xy-plot': data}
 
 
