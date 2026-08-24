@@ -166,6 +166,30 @@ def _get_reference_values(general: str) -> dict[str, str]:
     }
 
 
+@lru_cache(maxsize=None)
+def _get_flow_scheme(general: str) -> str:
+    """Return the pressure-velocity coupling scheme name (e.g. ``SIMPLE``)."""
+    scheme = re.search(r'\(flow/scheme\s+(\d+)\)', general).group(1)
+    return DISCRETIZATION_SCHEME.get(scheme, scheme)
+
+
+@lru_cache(maxsize=None)
+def _get_pseudo_time_method(general: str, flow_scheme: str) -> str:
+    """Return the pseudo time method state: ``Off``, ``Global Time Step`` or ``Local Time Step``.
+
+    Disabled when ``user-defined-settings?`` is ``#f``; for the Coupled
+    scheme a global pseudo time step is used, otherwise a local one.
+    """
+    if flow_scheme == 'Coupled':
+        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
+    else:
+        key = 'pseudo-time-method/segregated-pbns/user-defined-settings?'
+    enabled = re.search(rf'\({re.escape(key)}\s+([^)]+)\)', general).group(1)
+    if enabled == '#f':
+        return 'Off'
+    return 'Global Time Step' if flow_scheme == 'Coupled' else 'Local Time Step'
+
+
 @singledispatch
 def _sel_expr(arg, *args) -> str:
     """Unsupported first-argument type for :func:`_sel_expr`."""
@@ -216,6 +240,7 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     kvs = _parse_case_config(general)
     dimension = '3d' if kvs['rp-3d?'] == '#t' else '2d'
+    flow_scheme = _get_flow_scheme(general)
 
     solver: dict[str, Any] = {
         'type': 'pbns' if kvs['rp-seg?'] == '#t' else 'dbns',
@@ -224,6 +249,8 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
         'precision': 'double' if kvs['rp-double?'] == '#t' else 'single',
         'axi': 'true' if kvs['rp-axi?'] == '#t' else 'false',
         'init': 'hybrid' if kvs['hyb-init?'] == '#t' else 'standard',
+        'flow-scheme': flow_scheme,
+        'pseudo-time-method': _get_pseudo_time_method(general, flow_scheme),
         'turb': _get_turb_model(general),
         'energy': 'true' if kvs['rf-energy?'] == '#t' else 'false',
         'radiation': _get_radiation_model(general),
@@ -423,6 +450,13 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
     }
 
     data: dict[str, Any] = {'disc-scheme': {}, 'relax-factor': {}}
+    cell_lsq = re.search(r'\(recon/cell-lsq\?\s+([^)]+)\)', general).group(1)
+    node_lsq = re.search(r'\(recon/node-lsq\?\s+([^)]+)\)', general).group(1)
+    data['disc-scheme']['gradient'] = (
+        'Least Squares Cell-Based' if cell_lsq == '#t'
+        else 'Green-Gauss Node-Based' if node_lsq == '#t'
+        else 'Green-Gauss Cell-Based'
+    )
     for eq in ['flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon']:
         data['disc-scheme'][eq] = disc_scheme.get(eq)
 
@@ -438,12 +472,26 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
                 general
             ).group(1)
     else:
+        pseudo_time_method = _get_pseudo_time_method(general, data['disc-scheme']['flow'])
+        relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-implicit-'
         relax_factor = {
             ur[0]: ur[1]
-            for ur in re.findall(r'\((.*)/relax\s+([\d.]+)\)', general)
+            for ur in re.findall(rf'\((.*)/{relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ['pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
             data['relax-factor'][eq] = relax_factor.get(eq, '')
+
+    turb_model = _get_turb_model(general)
+    if turb_model == 'lam':
+        for eq in ['k', 'omega', 'epsilon', 'turb-viscosity']:
+            data['disc-scheme'].pop(eq, None)
+            data['relax-factor'].pop(eq, None)
+    elif turb_model == 'kw':
+        data['disc-scheme'].pop('epsilon', None)
+        data['relax-factor'].pop('epsilon', None)
+    elif turb_model == 'ke':
+        data['disc-scheme'].pop('omega', None)
+        data['relax-factor'].pop('omega', None)
 
     return data
 
@@ -668,10 +716,7 @@ def _read_contours(texts: CaseTexts) -> dict[str, Any]:
                 case ['surfaces-list', *surfaces_list]:
                     data[name]['surfaces-list'] = surfaces_list
                 case [property_name, *values] if property_name in ('range-options', 'color-map'):
-                    data[name][property_name] = {
-                        value[0]: value[2]
-                        for value in values
-                    }
+                    data[name][property_name] = {value[0]: value[2] for value in values}
                 case _:
                     continue
 
@@ -695,10 +740,7 @@ def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
                 case ['surfaces-list', *surfaces_list]:
                     data[name]['surfaces-list'] = surfaces_list
                 case [property_name, *values] if property_name in ('range-options', 'scale', 'vector-opt', 'color-map'):
-                    data[name][property_name] = {
-                        value[0]: value[2]
-                        for value in values
-                    }
+                    data[name][property_name] = {value[0]: value[2] for value in values}
                 case _:
                     continue
 

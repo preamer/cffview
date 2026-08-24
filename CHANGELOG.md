@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `flow-scheme` and `pseudo-time-method` (Off / Global Time Step / Local Time Step) to the `--solver` output.
+- Gradient method (Least Squares Cell-Based / Green-Gauss Cell-Based / Green-Gauss Node-Based) to the `--disc` output.
+
+### Changed
+
+- `--disc` relaxation factors are now read from `dual-ts-implicit-relax` when the pseudo time method (local time stepping) is enabled.
+
 ## [v0.4.3] - 2026-08-22
 
 ### Fixed
