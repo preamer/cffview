@@ -15,7 +15,7 @@ import sexpdata
 
 NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
 CaseTexts = namedtuple('CaseTexts', ['general', 'boundary', 'cortex'])
-ReaderFunc: TypeAlias = Callable[[CaseTexts], dict[str, Any]]
+SubReader: TypeAlias = Callable[[CaseTexts], dict[str, Any]]
 
 # from Ansys Fluent sg.h
 DISCRETIZATION_SCHEME = {
@@ -93,7 +93,7 @@ def _read_texts(file_path: str, *, need_boundary: bool = False, need_cortex: boo
     return CaseTexts(general, boundary, cortex)
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _parse_case_config(general: str) -> dict[str, str]:
     """Parse the ``(case-config ...)`` block into a ``name -> value`` mapping."""
     case_config = re.search(r'^\(case-config.*', general, re.M).group()
@@ -103,7 +103,7 @@ def _parse_case_config(general: str) -> dict[str, str]:
     }
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_turb_model(general: str) -> str | None:
     """Return the turbulence model name (``ke``, ``kw``, ...), or None if unknown."""
     kvs = _parse_case_config(general)
@@ -115,13 +115,13 @@ def _get_turb_model(general: str) -> str | None:
     return None
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_solver_time(general: str) -> str:
     """Return ``'transient'`` or ``'steady'``."""
     return 'transient' if _parse_case_config(general)['rp-unsteady?'] == '#t' else 'steady'
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_radiation_model(general: str) -> str:
     """Return the radiation model name (``p1``, ``s2s``, ...), or ``'false'`` if none."""
     kvs = _parse_case_config(general)
@@ -131,7 +131,7 @@ def _get_radiation_model(general: str) -> str:
     return 'false'
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_gravity(general: str, dimension: str) -> dict[str, str] | str:
     gravity = re.search(r'\(gravity\?\s+([^)\s]+)\)', general).group(1)
     if gravity != '#t':
@@ -140,7 +140,7 @@ def _get_gravity(general: str, dimension: str) -> dict[str, str] | str:
     return {axis: _sel_expr(general, f'gravity/{axis}') for axis in axes}
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_operating_conditions(general: str) -> dict[str, str]:
     conditions = [
         'operating-pressure',
@@ -153,7 +153,7 @@ def _get_operating_conditions(general: str) -> dict[str, str]:
     return {condition: _sel_expr(general, condition) for condition in conditions}
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_reference_values(general: str) -> dict[str, str]:
     reference_values = [
         'area', 'depth', 'density', 'enthalpy', 'length',
@@ -166,14 +166,14 @@ def _get_reference_values(general: str) -> dict[str, str]:
     }
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_flow_scheme(general: str) -> str:
     """Return the pressure-velocity coupling scheme name (e.g. ``SIMPLE``)."""
     scheme = re.search(r'\(flow/scheme\s+(\d+)\)', general).group(1)
     return DISCRETIZATION_SCHEME.get(scheme, scheme)
 
 
-@lru_cache(maxsize=None)
+@lru_cache()
 def _get_pseudo_time_method(general: str, flow_scheme: str) -> str:
     """Return the pseudo time method state: ``Off``, ``Global Time Step`` or ``Local Time Step``.
 
@@ -221,12 +221,12 @@ def _(lst: list[str], return_expr: bool = False) -> str:
 # ------------------------------------------------------------- dispatcher
 
 
-READERS: dict[str, ReaderFunc] = {}
+READERS: dict[str, SubReader] = {}
 
 
-def register_reader(name: str) -> Callable[[ReaderFunc], ReaderFunc]:
+def register_reader(name: str) -> Callable[[SubReader], SubReader]:
     """Register a reader function under a flag name."""
-    def decorator(func: ReaderFunc) -> ReaderFunc:
+    def decorator(func: SubReader) -> SubReader:
         READERS[name] = func
         return func
     return decorator
@@ -241,9 +241,13 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
     kvs = _parse_case_config(general)
     dimension = '3d' if kvs['rp-3d?'] == '#t' else '2d'
     flow_scheme = _get_flow_scheme(general)
+    velocity_formulation = 'absolute' if re.search(
+        r'\(solve-absolute-velocities\?\s+([^)\s]+)\)', general
+    ).group(1) == '#t' else 'relative'
 
     solver: dict[str, Any] = {
         'type': 'pbns' if kvs['rp-seg?'] == '#t' else 'dbns',
+        'velocity-formulation': velocity_formulation,
         'time': 'transient' if kvs['rp-unsteady?'] == '#t' else 'steady',
         'dimension': dimension,
         'precision': 'double' if kvs['rp-double?'] == '#t' else 'single',
@@ -462,47 +466,48 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
 
     if data['disc-scheme']['flow'] == 'Coupled':
         for eq in ('pressure', 'mom'):
-            data['relax-factor'][eq] = re.search(
+            data['relax-factors'][eq] = re.search(
                 rf'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
                 general
             ).group(1)
         for eq in ('density', 'body-force', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'disco'):
-            data['relax-factor'][eq] = re.search(
+            data['relax-factors'][eq] = re.search(
                 rf'\({eq}/pseudo-relax\s+([\d.]+)\)',
                 general
             ).group(1)
     else:
         pseudo_time_method = _get_pseudo_time_method(general, data['disc-scheme']['flow'])
-        implicit_relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-implicit-'
-        explicit_relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-explicit-'
+        implicit_relax_prefix, explicit_relax_prefix = (
+            ('', '') if pseudo_time_method == 'Off' else ('dual-ts-implicit-', 'dual-ts-explicit-')
+        )
         implicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{implicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity'):
-            data['relax-factor'][eq] = implicit_relax_factor.get(eq, '')
+            data['relax-factors'][eq] = implicit_relax_factor.get(eq, '')
         explicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{explicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('density', 'body-force', 'disco'):
-            data['relax-factor'][eq] = explicit_relax_factor.get(eq, '')
+            data['relax-factors'][eq] = explicit_relax_factor.get(eq, '')
 
     turb_model = _get_turb_model(general)
     if turb_model == 'lam':
         for eq in ['k', 'omega', 'epsilon', 'turb-viscosity']:
             data['disc-scheme'].pop(eq, None)
-            data['relax-factor'].pop(eq, None)
+            data['relax-factors'].pop(eq, None)
     elif turb_model == 'kw':
         data['disc-scheme'].pop('epsilon', None)
-        data['relax-factor'].pop('epsilon', None)
+        data['relax-factors'].pop('epsilon', None)
     elif turb_model == 'ke':
         data['disc-scheme'].pop('omega', None)
-        data['relax-factor'].pop('omega', None)
+        data['relax-factors'].pop('omega', None)
 
     radiation_model = _get_radiation_model(general)
     data['disc-scheme'].pop('disco', None) if radiation_model != 'disco' else None
-    data['relax-factor'].pop('disco', None) if radiation_model != 'disco' else None
+    data['relax-factors'].pop('disco', None) if radiation_model != 'disco' else None
 
     return data
 
