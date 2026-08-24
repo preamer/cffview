@@ -449,7 +449,7 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
         for ds in re.findall(r'\((.*)/scheme\s+(\d+)\)', general)
     }
 
-    data: dict[str, Any] = {'disc-scheme': {}, 'relax-factor': {}}
+    data: dict[str, Any] = {'disc-scheme': {}, 'relax-factors': {}}
     cell_lsq = re.search(r'\(recon/cell-lsq\?\s+([^)]+)\)', general).group(1)
     node_lsq = re.search(r'\(recon/node-lsq\?\s+([^)]+)\)', general).group(1)
     data['disc-scheme']['gradient'] = (
@@ -457,29 +457,36 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
         else 'Green-Gauss Node-Based' if node_lsq == '#t'
         else 'Green-Gauss Cell-Based'
     )
-    for eq in ['flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon']:
+    for eq in ('flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'disco'):
         data['disc-scheme'][eq] = disc_scheme.get(eq)
 
     if data['disc-scheme']['flow'] == 'Coupled':
-        for eq in ['pressure', 'mom']:
+        for eq in ('pressure', 'mom'):
             data['relax-factor'][eq] = re.search(
                 rf'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
                 general
             ).group(1)
-        for eq in ['temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
+        for eq in ('density', 'body-force', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'disco'):
             data['relax-factor'][eq] = re.search(
                 rf'\({eq}/pseudo-relax\s+([\d.]+)\)',
                 general
             ).group(1)
     else:
         pseudo_time_method = _get_pseudo_time_method(general, data['disc-scheme']['flow'])
-        relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-implicit-'
-        relax_factor = {
+        implicit_relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-implicit-'
+        explicit_relax_prefix = '' if pseudo_time_method == 'Off' else 'dual-ts-explicit-'
+        implicit_relax_factor = {
             ur[0]: ur[1]
-            for ur in re.findall(rf'\((.*)/{relax_prefix}relax\s+([\d.]+)\)', general)
+            for ur in re.findall(rf'\((.*)/{implicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
-        for eq in ['pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'density', 'body-force']:
-            data['relax-factor'][eq] = relax_factor.get(eq, '')
+        for eq in ('pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity'):
+            data['relax-factor'][eq] = implicit_relax_factor.get(eq, '')
+        explicit_relax_factor = {
+            ur[0]: ur[1]
+            for ur in re.findall(rf'\((.*)/{explicit_relax_prefix}relax\s+([\d.]+)\)', general)
+        }
+        for eq in ('density', 'body-force', 'disco'):
+            data['relax-factor'][eq] = explicit_relax_factor.get(eq, '')
 
     turb_model = _get_turb_model(general)
     if turb_model == 'lam':
@@ -492,6 +499,10 @@ def _read_disc(texts: CaseTexts) -> dict[str, Any]:
     elif turb_model == 'ke':
         data['disc-scheme'].pop('omega', None)
         data['relax-factor'].pop('omega', None)
+
+    radiation_model = _get_radiation_model(general)
+    data['disc-scheme'].pop('disco', None) if radiation_model != 'disco' else None
+    data['relax-factor'].pop('disco', None) if radiation_model != 'disco' else None
 
     return data
 
