@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Display `mesh_info` for `MeshPlotter`.
+
+### Fixed
+
+- Relax factors for `density`, `body-force`, `disco` when SIMPLE flow scheme pseudo time method is enabled.
+
 ## [v0.4.4] - 2026-08-24
 
 ### Added

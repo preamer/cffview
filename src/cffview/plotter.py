@@ -117,9 +117,11 @@ class BasePlotter:
 
 
 class MeshPlotter(BasePlotter):
-    def __init__(self, mesh, dimension: int = None) -> None:
+    def __init__(self, mesh, dimension: int, mesh_info: dict[str, int]) -> None:
         super().__init__(mesh)
         self.dimension = dimension
+        self.mesh_info = mesh_info
+        self._add_mesh_info()
         self.mesh_actor = self._add_mesh()
         self.opacity_slider_widget = self._add_opcatity_slider()
         self._add_mesh_clip_plane()
@@ -130,6 +132,14 @@ class MeshPlotter(BasePlotter):
                 'c': (self.clip_plane_cb, 'Clip Plane'),
                 'g': (self.grid_cb, 'Toggle Grid')
             }
+        )
+
+    def _add_mesh_info(self) -> None:
+        self.pl.add_text(
+            text=f'Nodes: {self.mesh_info["n_nodes"]}\n'
+            f'Faces: {self.mesh_info["n_faces"]}\n'
+            f'Cells: {self.mesh_info["n_cells"]}',
+            font_size=10,
         )
 
     def _add_mesh(self) -> Actor:

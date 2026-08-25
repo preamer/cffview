@@ -58,6 +58,7 @@ def show_mesh(file_path: str) -> None:
     """
     import pyvista as pv
     from .plotter import MeshPlotter
+    from h5py import File, Group, Dataset
 
     if file_path.endswith('cas.h5'):
         import os
@@ -71,17 +72,28 @@ def show_mesh(file_path: str) -> None:
             os.rename(dat_path, bak_path)
         try:
             mesh = pv.read(file_path)
+            with File(file_path) as f:
+                root_group: Group = f['/meshes/1']
+                dimension: np.int32 = root_group.attrs['dimension'][0]
+                mesh_info = {
+                    'n_nodes': root_group.attrs['nodeCount'][0],
+                    'n_faces': root_group.attrs['faceCount'][0],
+                    'n_cells': root_group.attrs['cellCount'][0],
+                }
         finally:
             if renamed and os.path.exists(bak_path):
                 os.rename(bak_path, dat_path)
     elif file_path.endswith('msh.h5'):
         import numpy as np
-        from h5py import File, Group, Dataset
-
         with File(file_path) as f:
             root_group: Group = f['/meshes/1']
             dimension: np.int32 = root_group.attrs['dimension'][0]
             nodeCount: np.uint64 = root_group.attrs['nodeCount'][0]
+            mesh_info = {
+                'n_nodes': nodeCount,
+                'n_faces': root_group.attrs['faceCount'][0],
+                'n_cells': root_group.attrs['cellCount'][0],
+            }
             pv_points = np.zeros((nodeCount, 3), dtype=np.float64)
 
             # nodes
@@ -119,7 +131,7 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None,
         )
 
-    plotter = MeshPlotter(mesh, locals().get('dimension'))
+    plotter = MeshPlotter(mesh, dimension, mesh_info)
     plotter.show(title=file_path)
 
 
