@@ -34,6 +34,7 @@ KEYBOARD_SHORTCUTS = {
 class BasePlotter:
     def __init__(self, mesh: MultiBlock | PolyData) -> None:
         self.mesh = mesh.combine() if isinstance(mesh, MultiBlock) else mesh
+        self.dimension = 2 if all(self.mesh.points[:, 2] == 0.0) else 3
 
         # Monkey patch to fix clip plane error
         if isinstance(self.mesh, UnstructuredGrid):
@@ -200,22 +201,32 @@ class MeshPlotter(BasePlotter):
 
 
 class DataPlotter(BasePlotter):
-    def __init__(self, mesh: MultiBlock | PolyData, var_names: tuple[str]) -> None:
+    def __init__(self, mesh: MultiBlock | PolyData) -> None:
         super().__init__(mesh)
-        self.var_names = var_names
+        self.var_names = [
+            'SV_P',
+            'SV_T',
+            'SV_DENSITY',
+            'SV_U', 'SV_V', 'SV_W',
+            'SV_H',
+        ]
+        self.var_names.remove('SV_W') if self.dimension == 2 else None
+        print(f"{len(self.var_names)} variable(s) available:")
+        for i, name in enumerate(self.var_names):
+            print(f"    [{i}] {name}")
 
         self.scalar_ranges = {
             name: self.mesh.get_data_range(name, preference=self._scalar_mode(name))
-            for name in var_names
+            for name in self.var_names
         }
 
         self.mesh_actor = self.pl.add_mesh(
             self.mesh,
             name='mesh',
             cmap='turbo',
-            scalars=var_names[0],
+            scalars=self.var_names[0],
             scalar_bar_args={
-                'title': var_names[0],
+                'title': self.var_names[0],
                 'vertical': True,
                 'position_x': 0.85,
                 'position_y': 0.2,
@@ -229,7 +240,7 @@ class DataPlotter(BasePlotter):
             self.mesh,
             name='clip_mesh',
             cmap='turbo',
-            scalars=var_names[0],
+            scalars=self.var_names[0],
             show_scalar_bar=False,
         )
         self.mesh_clip_plane_actor.visibility = False

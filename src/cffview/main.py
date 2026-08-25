@@ -57,7 +57,6 @@ def show_mesh(file_path: str) -> None:
         Path to the .h5 file
     """
     import pyvista as pv
-    from .plotter import MeshPlotter
     from h5py import File, Group, Dataset
 
     if file_path.endswith('cas.h5'):
@@ -131,6 +130,7 @@ def show_mesh(file_path: str) -> None:
             lines=pv_faces if dimension == 2 else None,
         )
 
+    from .plotter import MeshPlotter
     plotter = MeshPlotter(mesh, dimension, mesh_info)
     plotter.show(title=file_path)
 
@@ -251,8 +251,6 @@ def plot(file_path: str, out: bool = False, xy: bool = False, dat: bool = False)
             plot_xy(file_path)
         elif file_path.endswith('.dat.h5'):
             plot_dat(file_path)
-        else:
-            raise ValueError("Please specify --out, --xy or --dat")
 
 
 def plot_data(file_path: str) -> None:
@@ -278,18 +276,7 @@ def plot_data(file_path: str) -> None:
         return
 
     mesh = pv.read(file_path)
-    var_names = (
-        'SV_P',
-        'SV_T',
-        'SV_DENSITY',
-        'SV_U', 'SV_V', 'SV_W',
-        'SV_H',
-    )
-    print(f"{len(var_names)} variable(s) available:")
-    for i, name in enumerate(var_names):
-        print(f"    [{i}] {name}")
-
-    plotter = DataPlotter(mesh, var_names)
+    plotter = DataPlotter(mesh)
     plotter.show(title=file_path)
 
 
