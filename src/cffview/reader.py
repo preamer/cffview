@@ -166,30 +166,6 @@ def _get_reference_values(general: str) -> dict[str, str]:
     }
 
 
-@lru_cache()
-def _get_flow_scheme(general: str) -> str:
-    """Return the pressure-velocity coupling scheme name (e.g. ``SIMPLE``)."""
-    scheme = re.search(r'\(flow/scheme\s+(\d+)\)', general).group(1)
-    return DISCRETIZATION_SCHEME.get(scheme, scheme)
-
-
-@lru_cache()
-def _get_pseudo_time_method(general: str, flow_scheme: str) -> str:
-    """Return the pseudo time method state: ``Off``, ``Global Time Step`` or ``Local Time Step``.
-
-    Disabled when ``user-defined-settings?`` is ``#f``; for the Coupled
-    scheme a global pseudo time step is used, otherwise a local one.
-    """
-    if flow_scheme == 'Coupled':
-        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
-    else:
-        key = 'pseudo-time-method/segregated-pbns/user-defined-settings?'
-    enabled = re.search(rf'\({re.escape(key)}\s+([^)]+)\)', general).group(1)
-    if enabled == '#f':
-        return 'Off'
-    return 'Global Time Step' if flow_scheme == 'Coupled' else 'Local Time Step'
-
-
 @singledispatch
 def _sel_expr(arg, *args) -> str:
     """Unsupported first-argument type for :func:`_sel_expr`."""
@@ -240,7 +216,6 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     kvs = _parse_case_config(general)
     dimension = '3d' if kvs['rp-3d?'] == '#t' else '2d'
-    flow_scheme = _get_flow_scheme(general)
     velocity_formulation = 'absolute' if re.search(
         r'\(solve-absolute-velocities\?\s+([^)\s]+)\)', general
     ).group(1) == '#t' else 'relative'
@@ -253,8 +228,6 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
         'precision': 'double' if kvs['rp-double?'] == '#t' else 'single',
         'axi': 'true' if kvs['rp-axi?'] == '#t' else 'false',
         'init': 'hybrid' if kvs['hyb-init?'] == '#t' else 'standard',
-        'flow-scheme': flow_scheme,
-        'pseudo-time-method': _get_pseudo_time_method(general, flow_scheme),
         'turb': _get_turb_model(general),
         'energy': 'true' if kvs['rf-energy?'] == '#t' else 'false',
         'radiation': _get_radiation_model(general),
@@ -442,72 +415,87 @@ def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
     return {'named-expressions': data}
 
 
-# --------------------------------------------- discretisation & relaxation
+# --------------------------------------------- solution methods & controls
 
 
-@register_reader('disc')
-def _read_disc(texts: CaseTexts) -> dict[str, Any]:
+@register_reader('solution')
+def _read_solution(texts: CaseTexts) -> dict[str, Any]:
     general = texts.general
     disc_scheme = {
         ds[0]: DISCRETIZATION_SCHEME[ds[1]]
         for ds in re.findall(r'\((.*)/scheme\s+(\d+)\)', general)
     }
 
-    data: dict[str, Any] = {'disc-scheme': {}, 'relax-factors': {}}
+    data: dict[str, Any] = {'solution-methods': {}, 'solution-controls': {}}
     cell_lsq = re.search(r'\(recon/cell-lsq\?\s+([^)]+)\)', general).group(1)
     node_lsq = re.search(r'\(recon/node-lsq\?\s+([^)]+)\)', general).group(1)
-    data['disc-scheme']['gradient'] = (
+    data['solution-methods']['gradient'] = (
         'Least Squares Cell-Based' if cell_lsq == '#t'
         else 'Green-Gauss Node-Based' if node_lsq == '#t'
         else 'Green-Gauss Cell-Based'
     )
     for eq in ('flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'disco'):
-        data['disc-scheme'][eq] = disc_scheme.get(eq)
+        data['solution-methods'][eq] = disc_scheme.get(eq)
 
-    if data['disc-scheme']['flow'] == 'Coupled':
+    flow_scheme = data['solution-methods']['flow']
+    if flow_scheme == 'Coupled':
+        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
+    else:
+        key = 'pseudo-time-method/segregated-pbns/user-defined-settings?'
+    enabled = re.search(rf'\({re.escape(key)}\s+([^)]+)\)', general).group(1)
+    data['solution-methods']['pseudo-time-method'] = (
+        'Off' if enabled == '#f'
+        else 'Global Time Step' if flow_scheme == 'Coupled'
+        else 'Local Time Step'
+    )
+
+    if flow_scheme == 'Coupled':
+        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
         for eq in ('pressure', 'mom'):
-            data['relax-factors'][eq] = re.search(
+            data['solution-controls'][eq] = re.search(
                 rf'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
                 general
             ).group(1)
         for eq in ('density', 'body-force', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'disco'):
-            data['relax-factors'][eq] = re.search(
+            data['solution-controls'][eq] = re.search(
                 rf'\({eq}/pseudo-relax\s+([\d.]+)\)',
                 general
             ).group(1)
     else:
-        pseudo_time_method = _get_pseudo_time_method(general, data['disc-scheme']['flow'])
+        pseudo_time_method = data['solution-methods']['pseudo-time-method']
         implicit_relax_prefix, explicit_relax_prefix = (
             ('', '') if pseudo_time_method == 'Off' else ('dual-ts-implicit-', 'dual-ts-explicit-')
         )
+        if courant_number := re.search(r'\(dual-ts/courant-number\s+([\d.]+)\)', general).group(1) if pseudo_time_method != 'Off' else None:
+            data['solution-methods']['pseudo-time-courant-number'] = courant_number
         implicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{implicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity'):
-            data['relax-factors'][eq] = implicit_relax_factor.get(eq, '')
+            data['solution-controls'][eq] = implicit_relax_factor.get(eq, '')
         explicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{explicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('density', 'body-force', 'disco'):
-            data['relax-factors'][eq] = explicit_relax_factor.get(eq, '')
+            data['solution-controls'][eq] = explicit_relax_factor.get(eq, '')
 
     turb_model = _get_turb_model(general)
     if turb_model == 'lam':
         for eq in ['k', 'omega', 'epsilon', 'turb-viscosity']:
-            data['disc-scheme'].pop(eq, None)
-            data['relax-factors'].pop(eq, None)
+            data['solution-methods'].pop(eq, None)
+            data['solution-controls'].pop(eq, None)
     elif turb_model == 'kw':
-        data['disc-scheme'].pop('epsilon', None)
-        data['relax-factors'].pop('epsilon', None)
+        data['solution-methods'].pop('epsilon', None)
+        data['solution-controls'].pop('epsilon', None)
     elif turb_model == 'ke':
-        data['disc-scheme'].pop('omega', None)
-        data['relax-factors'].pop('omega', None)
+        data['solution-methods'].pop('omega', None)
+        data['solution-controls'].pop('omega', None)
 
     radiation_model = _get_radiation_model(general)
-    data['disc-scheme'].pop('disco', None) if radiation_model != 'disco' else None
-    data['relax-factors'].pop('disco', None) if radiation_model != 'disco' else None
+    data['solution-methods'].pop('disco', None) if radiation_model != 'disco' else None
+    data['solution-controls'].pop('disco', None) if radiation_model != 'disco' else None
 
     return data
 

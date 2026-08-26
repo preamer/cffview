@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Display `mesh_info` for `MeshPlotter`.
+- `pseudo-time-courant-number` to the `--solution` output when the pseudo time method is enabled.
+
+### Changed
+
+- `--disc` renamed to `--solution`; output reorganised into `solution-methods` (discretisation schemes, gradient, pseudo time method) and `solution-controls` (relaxation factors).
+- `flow-scheme` and `pseudo-time-method` moved from the `--solver` output to `--solution`.
 
 ### Fixed
 

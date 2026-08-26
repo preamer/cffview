@@ -47,7 +47,7 @@ cffview <文件> [选项]
 | `--ne`, `--named-expressions` | 命名表达式 |
 | `--cff`, `--custom-field-functions` | 自定义场函数 |
 | `--units [关键字 ...]` | 单位表（可按一个或多个关键字过滤；为空表示默认 SI 单位制） |
-| `--disc` | 离散格式和松弛因子 |
+| `--solution` | 离散格式、松弛因子等求解设置 |
 | `--rd`, `--report-definitions` | 报告定义 |
 | `--plotsets` | 图表集配置 |
 | `--monitorsets` | 监控集配置 |

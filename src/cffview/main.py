@@ -316,7 +316,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--interfaces",), "show mesh interfaces settings"),
         (("--ne", "--named-expressions"), "show named-expressions settings"),
         (("--cff", "--custom-field-functions"), "show custom field functions"),
-        (("--disc",), "show disc-scheme and relax-factor settings"),
+        (("--solution",), "show solution methods and controls settings"),
         (("--rd", "--report-definitions"), "show report-definitions settings"),
         (("--plotsets",), "show report-definitions plotsets settings"),
         (("--monitorsets",), "show report-definitions monitorsets settings"),
