@@ -242,7 +242,7 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
         'turb': _get_turb_model(general),
         'energy': 'true' if kvs['rf-energy?'] == '#t' else 'false',
         'radiation': _get_radiation_model(general),
-        'multi-phase': _get_multi_phase_model(general) if kvs['sg-mphase?'] != '#f' else 'false',
+        'multi-phase': _get_multi_phase_model(general),
         'gravity': _get_gravity(general, dimension),
     }
     if solver['turb'] is None:

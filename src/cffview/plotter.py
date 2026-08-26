@@ -10,8 +10,6 @@ from functools import wraps
 
 from pyvista import _vtk, Actor, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
 
-from .utils import print_colored_dict
-
 # PyVista plotter's default keyboard shortcuts
 KEYBOARD_SHORTCUTS = {
     'q': 'Close the rendering window',
@@ -57,6 +55,7 @@ class BasePlotter:
 
     @wraps(Plotter.show)
     def show(self, *args, **kwargs) -> None:
+        from .utils import print_colored_dict
         print_colored_dict(self.keyboard_shortcuts)
         self.pl.show(*args, **kwargs)
 
