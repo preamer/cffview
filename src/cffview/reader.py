@@ -123,12 +123,23 @@ def _get_solver_time(general: str) -> str:
 
 @lru_cache()
 def _get_radiation_model(general: str) -> str:
-    """Return the radiation model name (``p1``, ``s2s``, ...), or ``'false'`` if none."""
+    """Return the radiation model name (``p1``, ``s2s``, ...), or ``'off'`` if none."""
     kvs = _parse_case_config(general)
     for key in RADIATION_MODEL_KEYS:
         if kvs[key] != '#f':
             return key[3:-1]
-    return 'false'
+    return 'off'
+
+
+@lru_cache()
+def _get_multi_phase_model(general: str) -> str:
+    """Return ``'#f'`` or multi-phase model(vof, drift-flux(mixture), multi-fluid(eulerian))."""
+    if (mphase_model := _parse_case_config(general)['sg-mphase?']) != '#f':
+        return mphase_model
+    elif _parse_case_config(general)['sg-wetsteam?'] != '#f':
+        return 'wetsteam'
+    else:
+        return 'off'
 
 
 @lru_cache()
@@ -231,6 +242,7 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
         'turb': _get_turb_model(general),
         'energy': 'true' if kvs['rf-energy?'] == '#t' else 'false',
         'radiation': _get_radiation_model(general),
+        'multi-phase': _get_multi_phase_model(general) if kvs['sg-mphase?'] != '#f' else 'false',
         'gravity': _get_gravity(general, dimension),
     }
     if solver['turb'] is None:

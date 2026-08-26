@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Display `mesh_info` for `MeshPlotter`.
 - `pseudo-time-courant-number` to the `--solution` output when the pseudo time method is enabled.
+- `multi-phase` model to the `--solver` output.
 
 ### Changed
 

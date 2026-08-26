@@ -159,7 +159,7 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
 
 def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
     """Map radiation codes and drop radiation fields when no radiation model is active."""
-    if rad_model not in (None, 'false'):
+    if rad_model not in (None, 'off'):
         if data['t_b_b_spec'] == 'Boundary Temperature':
             data.pop('t_b_b', None)
     else:
@@ -618,7 +618,7 @@ class Wall:
             data.pop('roughness_height', None)
             data.pop('roughness_const', None)
 
-        if rad_model not in (None, 'false'):
+        if rad_model not in (None, 'off'):
             match data['radiation_bc']:
                 case '(Semi-)Transparent':
                     data.pop('in_emiss', None)
