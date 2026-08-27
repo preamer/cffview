@@ -207,6 +207,7 @@ def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
 class Fluid:
     name: str
     id_: str
+
     material: str = ''
     sources: str = ''
     source_terms: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -219,6 +220,15 @@ class Fluid:
     fanzone: str = ''
     radiating: str = ''
 
+    x_origin: str = grouped('reference-frame')
+    y_origin: str = grouped('reference-frame')
+    z_origin: str = grouped('reference-frame')
+    axis_origin_component: str = grouped('reference-frame')
+    ai: str = grouped('reference-frame')
+    aj: str = grouped('reference-frame')
+    ak: str = grouped('reference-frame')
+    axis_direction_component: str = grouped('reference-frame')
+
     def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
@@ -226,7 +236,7 @@ class Fluid:
         if rad_model == 'off':
             data.pop('radiating', None)
 
-        return data
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -241,6 +251,15 @@ class Solid:
     solid_motion: str = ''
     radiating: str = ''
 
+    x_origin: str = grouped('reference-frame')
+    y_origin: str = grouped('reference-frame')
+    z_origin: str = grouped('reference-frame')
+    axis_origin_component: str = grouped('reference-frame')
+    ai: str = grouped('reference-frame')
+    aj: str = grouped('reference-frame')
+    ak: str = grouped('reference-frame')
+    axis_direction_component: str = grouped('reference-frame')
+
     def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
@@ -248,7 +267,7 @@ class Solid:
         if rad_model == 'off':
             data.pop('radiating', None)
 
-        return data
+        return _group_by_category(self, data)
 
 # endregion Cell Zone
 
@@ -306,7 +325,7 @@ class VelocityInlet:
                     data.pop(key, None)
 
         _filter_radiation(data, rad_model)
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -354,7 +373,7 @@ class MassFlowInlet:
             case 'Mass Flux with Average Mass Flux':
                 data.pop('mass_flow', None)
 
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -398,7 +417,7 @@ class PressureInlet:
                 data.pop(key, None)
 
         _filter_radiation(data, rad_model)
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -466,7 +485,7 @@ class PressureOutlet:
             _filter_turbulence(data, turb_model)
 
         _filter_radiation(data, rad_model)
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -509,7 +528,7 @@ class MassFlowOutlet:
             case 'Mass Flux with Average Mass Flux':
                 data.pop('mass_flow', None)
 
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -531,7 +550,7 @@ class Outflow:
         _map_consts(data)
         _filter_radiation(data, rad_model)
 
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 
 @dataclass
@@ -628,7 +647,7 @@ class Wall:
             data.pop('in_emiss', None)
             data.pop('band_diffuse_frac', None)
 
-        return _group_by_category(type(self), data)
+        return _group_by_category(self, data)
 
 # endregion Wall
 

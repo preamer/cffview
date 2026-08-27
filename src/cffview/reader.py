@@ -305,6 +305,29 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
     from .boundary import BoundaryFactory
     boundaries = stringify_nested_list(sexpdata.parse(texts.boundary, true=None))
 
+    def format_component(comp) -> str:
+        """Format one component of a multi-value boundary property.
+
+        Handles plain values (``'2'``), single selectors (``['constant', '.', v]``,
+        ``['profile', sel, expr]``) and nested selector pairs such as
+        ``[['profile', sel, expr], ['constant', '.', v]]`` (prefers the profile,
+        falls back to the constant).
+        """
+        if isinstance(comp, str):
+            return comp
+        if isinstance(comp, list):
+            if len(comp) == 3:
+                if comp[0] == 'constant' and comp[1] == '.':
+                    return f'constant/{comp[2]}'
+                if comp[0] == 'profile' and comp[1]:
+                    return f'profile/{comp[1]}/{comp[2]}'
+            if comp and all(isinstance(item, list) for item in comp):
+                for item in comp:
+                    formatted = format_component(item)
+                    if formatted:
+                        return formatted
+        return str(comp)
+
     data: dict[str, Any] = {}
     for boundary_info in boundaries:
         id_, type_, name, _ = [_ for _ in boundary_info[1]]
@@ -323,6 +346,11 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
                         value = f'{sel}/{expr}'
                     case [_, ['profile', sel, expr], *_]:
                         value = f'profile/{sel}/{expr}'
+                    case [_, *components] if any(
+                        isinstance(c, list) and c and isinstance(c[0], list)
+                        for c in components
+                    ):
+                        value = ' '.join(format_component(c) for c in components)
                     case ['source-terms', *source_terms_list]:
                         value = {}
                         for source_term in (st for st in source_terms_list if len(st) == 2):
