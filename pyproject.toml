@@ -7,14 +7,12 @@ name = "cffview"
 version = "0.4.4"
 description = "A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without opening Fluent"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [{ name = "preamer", email = "1524477126@qq.com" }]
 keywords = ["fluent", "cfd", "ansys", "hdf5", "mesh"]
 license = "BSD-3-Clause"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",

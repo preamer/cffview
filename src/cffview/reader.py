@@ -7,15 +7,15 @@ requested readers and merges their results.
 """
 
 import re
+from typing import Any, Callable
 from collections import namedtuple
 from functools import lru_cache, singledispatch
-from typing import Any, Callable, TypeAlias, Union
 
 import sexpdata
 
-NestedStrList: TypeAlias = list[Union[str, 'NestedStrList']]
+type NestedStrList = list[str | NestedStrList]
+type SubReader = Callable[[CaseTexts], dict[str, Any]]
 CaseTexts = namedtuple('CaseTexts', ['general', 'boundary', 'cortex'])
-SubReader: TypeAlias = Callable[[CaseTexts], dict[str, Any]]
 
 # from Ansys Fluent sg.h
 DISCRETIZATION_SCHEME = {
@@ -332,7 +332,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
     for boundary_info in boundaries:
         id_, type_, name, _ = [_ for _ in boundary_info[1]]
         new_boundary = BoundaryFactory.create(name, id_, type_)
-        b_list: list[dict[str, str | dict[str, str]]] = data.get(type_, [])
+        b_list: list[dict[str, str | dict[str, str]]] = data.setdefault(type_, [])
 
         for property_list in boundary_info[2]:
             property_name = property_list[0].replace('-', '_').replace('?', '').replace('/', '_')
@@ -369,7 +369,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
             if hasattr(new_boundary, 'to_dict')
             else new_boundary.__dict__
         )
-        data[type_] = b_list
+
     return {'boundary': data}
 
 
