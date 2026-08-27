@@ -7,7 +7,7 @@ Scheme ``Thread Variables`` and :class:`BoundaryConsts` for mapping numeric
 codes to readable strings.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 
 
 class BoundaryConsts:
@@ -127,6 +127,39 @@ TURBULENCE_KEYS = (
 RADIATION_KEYS = ('radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b')
 
 
+def grouped(group: str, default: str = '') -> str:
+    """Field factory that tags a boundary attribute with its category group."""
+    return field(default=default, metadata={'group': group})
+
+
+def _group_by_category(cls, data: dict[str, str]) -> dict:
+    """Split a flat boundary dict into category sub-dicts (momentum / thermal / radiation / ...).
+
+    The categories come from each dataclass field's ``metadata['group']`` tag
+    (see :func:`grouped`). ``name`` and ``id_`` stay at the top level; keys not
+    tagged are collected under ``other`` (omitted when empty).
+    """
+    result: dict = {'name': data['name'], 'id_': data['id_']}
+    groups: dict[str, list[str]] = {}
+    for f in fields(cls):
+        group = f.metadata.get('group')
+        if group:
+            groups.setdefault(group, []).append(f.name)
+    categorized: set[str] = set()
+    for category, keys in groups.items():
+        category_data = {key: data[key] for key in keys if key in data}
+        if category_data:
+            result[category] = category_data
+        categorized.update(keys)
+    other = {
+        key: value for key, value in data.items()
+        if key not in categorized and key not in ('name', 'id_')
+    }
+    if other:
+        result['other'] = other
+    return result
+
+
 def _map_consts(data: dict[str, str]) -> None:
     """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
     for key in filter(lambda k: k.upper() in BoundaryConsts.__dict__, data.keys()):
@@ -186,11 +219,11 @@ class Fluid:
     fanzone: str = ''
     radiating: str = ''
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _filter_sources(data)
-        if rad_model in (None, 'false'):
+        if rad_model == 'off':
             data.pop('radiating', None)
 
         return data
@@ -208,11 +241,11 @@ class Solid:
     solid_motion: str = ''
     radiating: str = ''
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _filter_sources(data)
-        if rad_model in (None, 'false'):
+        if rad_model == 'off':
             data.pop('radiating', None)
 
         return data
@@ -228,38 +261,32 @@ class VelocityInlet:
     name: str
     id_: str
 
-    # region momentum
-    velocity_spec: str = ''
-    frame_of_reference: str = ''
-    vmag: str = ''
+    velocity_spec: str = grouped('momentum')
+    frame_of_reference: str = grouped('momentum')
+    vmag: str = grouped('momentum')
 
-    ke_spec: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
+    ke_spec: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
 
-    coordinate_system: str = ''
-    ni: str = ''
-    nj: str = ''
-    nk: str = ''
-    u: str = ''
-    v: str = ''
-    w: str = ''
-    # endregion momentum
+    coordinate_system: str = grouped('momentum')
+    ni: str = grouped('momentum')
+    nj: str = grouped('momentum')
+    nk: str = grouped('momentum')
+    u: str = grouped('momentum')
+    v: str = grouped('momentum')
+    w: str = grouped('momentum')
 
-    # region thermal
-    t: str = ''
-    # endregion thermal
+    t: str = grouped('thermal')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -279,7 +306,7 @@ class VelocityInlet:
                     data.pop(key, None)
 
         _filter_radiation(data, rad_model)
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -288,35 +315,29 @@ class MassFlowInlet:
     name: str
     id_: str
 
-    # region momentum
-    flow_spec: str = ''
-    mass_flow: str = ''
-    mass_flux: str = ''
-    mass_flux_ave: str = ''
-    frame_of_reference: str = ''
-    p: str = ''
+    flow_spec: str = grouped('momentum')
+    mass_flow: str = grouped('momentum')
+    mass_flux: str = grouped('momentum')
+    mass_flux_ave: str = grouped('momentum')
+    frame_of_reference: str = grouped('momentum')
+    p: str = grouped('momentum')
 
-    ke_spec: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
+    ke_spec: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
 
-    coordinate_system: str = ''
-    # endregion momentum
+    coordinate_system: str = grouped('momentum')
 
-    # region thermal
-    t0: str = ''
-    # endregion thermal
+    t0: str = grouped('thermal')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -333,7 +354,7 @@ class MassFlowInlet:
             case 'Mass Flux with Average Mass Flux':
                 data.pop('mass_flow', None)
 
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -342,37 +363,31 @@ class PressureInlet:
     name: str
     id_: str
 
-    # region momentum
-    frame_of_reference: str = ''
-    p0: str = ''
-    p: str = ''
+    frame_of_reference: str = grouped('momentum')
+    p0: str = grouped('momentum')
+    p: str = grouped('momentum')
 
-    direction_spec: str = ''
-    coordinate_system: str = ''
-    ni: str = ''
-    nj: str = ''
-    nk: str = ''
+    direction_spec: str = grouped('momentum')
+    coordinate_system: str = grouped('momentum')
+    ni: str = grouped('momentum')
+    nj: str = grouped('momentum')
+    nk: str = grouped('momentum')
 
-    ke_spec: str = ''
-    prevent_reverse_flow: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
-    # endregion momentum
+    ke_spec: str = grouped('momentum')
+    prevent_reverse_flow: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
 
-    # region thermal
-    t0: str = ''
-    # endregion thermal
+    t0: str = grouped('thermal')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -383,7 +398,7 @@ class PressureInlet:
                 data.pop(key, None)
 
         _filter_radiation(data, rad_model)
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -417,32 +432,26 @@ class PressureOutlet:
     name: str
     id_: str
 
-    # region momentum
-    p: str = ''
+    p: str = grouped('momentum')
 
-    ke_spec: str = ''
-    prevent_reverse_flow: str = ''
-    radial: str = ''
-    avg_press_spec: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    targeted_mf_boundary: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
-    # endregion momentum
+    ke_spec: str = grouped('momentum')
+    prevent_reverse_flow: str = grouped('momentum')
+    radial: str = grouped('momentum')
+    avg_press_spec: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    targeted_mf_boundary: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
 
-    # region thermal
-    t0: str = ''
-    # endregion thermal
+    t0: str = grouped('thermal')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -457,7 +466,7 @@ class PressureOutlet:
             _filter_turbulence(data, turb_model)
 
         _filter_radiation(data, rad_model)
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -466,28 +475,24 @@ class MassFlowOutlet:
     name: str
     id_: str
 
-    # region momentum
-    flow_spec: str = ''
-    mass_flow: str = ''
-    mass_flux: str = ''
-    mass_flux_ave: str = ''
-    frame_of_reference: str = ''
+    flow_spec: str = grouped('momentum')
+    mass_flow: str = grouped('momentum')
+    mass_flux: str = grouped('momentum')
+    mass_flux_ave: str = grouped('momentum')
+    frame_of_reference: str = grouped('momentum')
 
-    ke_spec: str = ''
-    turb_intensity: str = ''
-    turb_length_scale: str = ''
-    turb_hydraulic_diam: str = ''
-    turb_viscosity_ratio: str = ''
-    # endregion momentum
+    ke_spec: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -504,7 +509,7 @@ class MassFlowOutlet:
             case 'Mass Flux with Average Mass Flux':
                 data.pop('mass_flow', None)
 
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -512,19 +517,21 @@ class MassFlowOutlet:
 class Outflow:
     name: str
     id_: str
-    flowrate_frac: str = ''
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    t_b_b_spec: str = ''
-    t_b_b: str = ''
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    flowrate_frac: str = grouped('momentum')
+
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
+
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
         _filter_radiation(data, rad_model)
 
-        return data
+        return _group_by_category(type(self), data)
 
 
 @dataclass
@@ -552,40 +559,34 @@ class Wall:
     name: str
     id_: str
 
-    # region momentum
-    motion_bc: str = ''
-    shear_bc: str = ''
-    rough_bc: str = ''
-    moving: str = ''
-    relative: str = ''
-    roughness_height: str = ''
-    roughness_const: str = ''
-    # endregion momentum
+    motion_bc: str = grouped('momentum')
+    shear_bc: str = grouped('momentum')
+    rough_bc: str = grouped('momentum')
+    moving: str = grouped('momentum')
+    relative: str = grouped('momentum')
+    roughness_height: str = grouped('momentum')
+    roughness_const: str = grouped('momentum')
 
-    # region thermal
-    d: str = ''
-    q_dot: str = ''
-    material: str = ''
+    d: str = grouped('thermal')
+    q_dot: str = grouped('thermal')
+    material: str = grouped('thermal')
 
-    thermal_bc: str = ''
-    q: str = ''         # heat flux
-    t: str = ''         # temperature
-    h: str = ''         # convection
-    tinf: str = ''      # convection
-    ex_emiss: str = ''  # radiation
-    trad: str = ''      # radiation
+    thermal_bc: str = grouped('thermal')
+    q: str = grouped('thermal')         # heat flux
+    t: str = grouped('thermal')         # temperature
+    h: str = grouped('thermal')         # convection
+    tinf: str = grouped('thermal')      # convection
+    ex_emiss: str = grouped('thermal')  # radiation
+    trad: str = grouped('thermal')      # radiation
 
-    planar_conduction: str = ''
-    shell_conduction: str = ''
-    # endregion thermal
+    planar_conduction: str = grouped('thermal')
+    shell_conduction: str = grouped('thermal')
 
-    # region radiation
-    radiation_bc: str = ''
-    in_emiss: str = ''
-    band_diffuse_frac: str = ''
-    # endregion radiation
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    band_diffuse_frac: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str = None, rad_model: str = None) -> dict[str, str]:
+    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
         _map_consts(data)
@@ -627,7 +628,7 @@ class Wall:
             data.pop('in_emiss', None)
             data.pop('band_diffuse_frac', None)
 
-        return data
+        return _group_by_category(type(self), data)
 
 # endregion Wall
 

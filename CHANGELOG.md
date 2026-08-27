@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `--disc` renamed to `--solution`; output reorganised into `solution-methods` (discretisation schemes, gradient, pseudo time method) and `solution-controls` (relaxation factors).
 - `flow-scheme` and `pseudo-time-method` moved from the `--solver` output to `--solution`.
+- `--bd` boundary output grouped into `momentum` / `thermal` / `radiation` sub-objects (fields tagged via dataclass metadata).
 
 ### Fixed
 
