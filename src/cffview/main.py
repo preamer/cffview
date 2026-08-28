@@ -8,10 +8,10 @@ dispatches to :mod:`cffview.extract` (version / raw Scheme export),
 the CLI together; the actual work lives in the feature modules.
 """
 
+import argparse
+
 
 def main() -> None:
-    import argparse
-
     BANNER = r"""
         ________      _
   _____/ __/ __/   __(_)__ _      __
