@@ -35,7 +35,7 @@ class _CodeEnum(StrEnum):
         return None
 
 
-class BoundaryConsts:
+class BoundaryEnums:
     # region momentum
     class VELOCITY_SPEC(_CodeEnum):
         MAGNITUDE_AND_DIRECTION = ('0', 'Magnitude and Direction')
@@ -180,8 +180,8 @@ def _group_by_category(cls, data: dict[str, str]) -> dict:
 
 def _map_consts(data: dict[str, str]) -> None:
     """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
-    for key in filter(lambda k: k.upper() in BoundaryConsts.__dict__, data.keys()):
-        data[key] = BoundaryConsts[key].from_code(data[key]) or 'unknown'
+    for key in filter(lambda k: k.upper() in BoundaryEnums.__dict__, data.keys()):
+        data[key] = BoundaryEnums[key].from_code(data[key]) or 'unknown'
 
 
 def _filter_sources(data: dict[str, str]) -> None:
@@ -197,13 +197,13 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
             data.pop(key, None)
         return
     match data['ke_spec']:
-        case BoundaryConsts.KE_SPEC.INTENSITY_AND_LENGTH_SCALE:
+        case BoundaryEnums.KE_SPEC.INTENSITY_AND_LENGTH_SCALE:
             data.pop('turb_viscosity_ratio', None)
             data.pop('turb_hydraulic_diam', None)
-        case BoundaryConsts.KE_SPEC.INTENSITY_AND_VISCOSITY_RATIO:
+        case BoundaryEnums.KE_SPEC.INTENSITY_AND_VISCOSITY_RATIO:
             data.pop('turb_length_scale', None)
             data.pop('turb_hydraulic_diam', None)
-        case BoundaryConsts.KE_SPEC.INTENSITY_AND_HYDRAULIC_DIAMETER:
+        case BoundaryEnums.KE_SPEC.INTENSITY_AND_HYDRAULIC_DIAMETER:
             data.pop('turb_length_scale', None)
             data.pop('turb_viscosity_ratio', None)
 
@@ -211,27 +211,27 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
 def _filter_direction_spec(data: dict[str, str]) -> None:
     # TODO: complete this function for 'Local Cylindrical(Radial, Tangential, Axial)' and 'Local Cylindrical Swirl'
     """Filter direction_spec and corresponding coordinate_system."""
-    if data['direction_spec'] == BoundaryConsts.DIRECTION_SPEC.NORMAL_TO_BOUNDARY:
+    if data['direction_spec'] == BoundaryEnums.DIRECTION_SPEC.NORMAL_TO_BOUNDARY:
         for key in ('ni', 'nj', 'nk', 'u', 'v', 'w', 'coordinate_system'):
             data.pop(key, None)
     else:
         match data['coordinate_system']:
-            case BoundaryConsts.COORDINATE_SYSTEM.CARTESIAN:
+            case BoundaryEnums.COORDINATE_SYSTEM.CARTESIAN:
                 for key in ('ni', 'nj', 'nk'):
                     data.pop(key, None)
-            case BoundaryConsts.COORDINATE_SYSTEM.CYLINDRICAL:
+            case BoundaryEnums.COORDINATE_SYSTEM.CYLINDRICAL:
                 for key in ('u', 'v', 'w'):
                     data.pop(key, None)
-            case BoundaryConsts.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL:
+            case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL:
                 ...
-            case BoundaryConsts.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL_SWIRL:
+            case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL_SWIRL:
                 ...
 
 
 def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
     """Map radiation codes and drop radiation fields when no radiation model is active."""
     if rad_model not in (None, 'off'):
-        if data['t_b_b_spec'] == BoundaryConsts.T_B_B_SPEC.BOUNDARY_TEMPERATURE:
+        if data['t_b_b_spec'] == BoundaryEnums.T_B_B_SPEC.BOUNDARY_TEMPERATURE:
             data.pop('t_b_b', None)
     else:
         for key in RADIATION_KEYS:
@@ -350,15 +350,15 @@ class VelocityInlet:
         _filter_turbulence(data, turb_model)
 
         match data['velocity_spec']:
-            case BoundaryConsts.VELOCITY_SPEC.MAGNITUDE_AND_DIRECTION:
+            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_AND_DIRECTION:
                 data.pop('u', None)
                 data.pop('v', None)
                 data.pop('w', None)
-            case BoundaryConsts.VELOCITY_SPEC.COMPONENTS:
+            case BoundaryEnums.VELOCITY_SPEC.COMPONENTS:
                 data.pop('ni', None)
                 data.pop('nj', None)
                 data.pop('nk', None)
-            case BoundaryConsts.VELOCITY_SPEC.MAGNITUDE_NORMAL_TO_BOUNDARY:
+            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_NORMAL_TO_BOUNDARY:
                 for key in ['coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w']:
                     data.pop(key, None)
 
@@ -410,13 +410,13 @@ class MassFlowInlet:
         _filter_direction_spec(data)
 
         match data['flow_spec']:
-            case BoundaryConsts.FLOW_SPEC.MASS_FLOW_RATE:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLOW_RATE:
                 data.pop('mass_flux', None)
                 data.pop('mass_flux_ave', None)
-            case BoundaryConsts.FLOW_SPEC.MASS_FLUX:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX:
                 data.pop('mass_flow', None)
                 data.pop('mass_flux_ave', None)
-            case BoundaryConsts.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
                 data.pop('mass_flow', None)
 
         return _group_by_category(self, data)
@@ -565,13 +565,13 @@ class MassFlowOutlet:
         _filter_radiation(data, rad_model)
 
         match data['flow_spec']:
-            case BoundaryConsts.FLOW_SPEC.MASS_FLOW_RATE:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLOW_RATE:
                 data.pop('mass_flux', None)
                 data.pop('mass_flux_ave', None)
-            case BoundaryConsts.FLOW_SPEC.MASS_FLUX:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX:
                 data.pop('mass_flow', None)
                 data.pop('mass_flux_ave', None)
-            case BoundaryConsts.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
                 data.pop('mass_flow', None)
 
         return _group_by_category(self, data)
@@ -657,22 +657,22 @@ class Wall:
         _map_consts(data)
 
         match data['thermal_bc']:
-            case BoundaryConsts.THERMAL_BC.TEMPERATURE:
+            case BoundaryEnums.THERMAL_BC.TEMPERATURE:
                 for key in ['q', 'h', 'tinf', 'ex_emiss', 'trad']:
                     data.pop(key, None)
-            case BoundaryConsts.THERMAL_BC.HEAT_FLUX:
+            case BoundaryEnums.THERMAL_BC.HEAT_FLUX:
                 for key in ['t', 'h', 'tinf', 'ex_emiss', 'trad']:
                     data.pop(key, None)
-            case BoundaryConsts.THERMAL_BC.CONVECTION:
+            case BoundaryEnums.THERMAL_BC.CONVECTION:
                 for key in ['q', 't', 'ex_emiss', 'trad']:
                     data.pop(key, None)
-            case BoundaryConsts.THERMAL_BC.COUPLED | BoundaryConsts.THERMAL_BC.VIA_SYSTEM_COUPLING:
+            case BoundaryEnums.THERMAL_BC.COUPLED | BoundaryEnums.THERMAL_BC.VIA_SYSTEM_COUPLING:
                 for key in ['q', 't', 'h', 'tinf', 'ex_emiss', 'trad']:
                     data.pop(key, None)
-            case BoundaryConsts.THERMAL_BC.RADIATION:
+            case BoundaryEnums.THERMAL_BC.RADIATION:
                 for key in ['q', 't', 'h', 'tinf']:
                     data.pop(key, None)
-            case BoundaryConsts.THERMAL_BC.MIXED:
+            case BoundaryEnums.THERMAL_BC.MIXED:
                 for key in ['q', 't']:
                     data.pop(key, None)
 
@@ -686,7 +686,7 @@ class Wall:
 
         if rad_model not in (None, 'off'):
             match data['radiation_bc']:
-                case BoundaryConsts.RADIATION_BC.SEMI_TRANSPARENT:
+                case BoundaryEnums.RADIATION_BC.SEMI_TRANSPARENT:
                     data.pop('in_emiss', None)
         else:
             data.pop('radiation_bc', None)
