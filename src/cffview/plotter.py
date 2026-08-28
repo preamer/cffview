@@ -8,7 +8,7 @@ variable switching, opacity and clip-plane widgets.
 import sys
 from functools import wraps
 
-from pyvista import _vtk, Actor, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
+from pyvista import read, _vtk, Actor, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
 
 # PyVista plotter's default keyboard shortcuts
 KEYBOARD_SHORTCUTS = {
@@ -318,3 +318,113 @@ class DataPlotter(BasePlotter):
             )
         )
         return clip_plane_cb
+
+
+def show_mesh(file_path: str) -> None:
+    """Show mesh with PyVista
+
+    Parameters
+    ---------
+    file_path : str
+        Path to the .h5 file
+    """
+    from h5py import File, Group, Dataset
+
+    if file_path.endswith('cas.h5'):
+        import os
+        dat_path = os.path.splitext(file_path)[0]
+        if dat_path.endswith('.cas'):
+            dat_path = dat_path[:-4]
+        dat_path += '.dat.h5'
+        bak_path = dat_path + '.tmp_bak'
+        renamed = os.path.exists(dat_path)
+        if renamed:
+            os.rename(dat_path, bak_path)
+        try:
+            mesh = read(file_path)
+            with File(file_path) as f:
+                root_group: Group = f['/meshes/1']
+                dimension: np.int32 = root_group.attrs['dimension'][0]
+                mesh_info = {
+                    'n_nodes': root_group.attrs['nodeCount'][0],
+                    'n_faces': root_group.attrs['faceCount'][0],
+                    'n_cells': root_group.attrs['cellCount'][0],
+                }
+        finally:
+            if renamed and os.path.exists(bak_path):
+                os.rename(bak_path, dat_path)
+    elif file_path.endswith('msh.h5'):
+        import numpy as np
+        with File(file_path) as f:
+            root_group: Group = f['/meshes/1']
+            dimension: np.int32 = root_group.attrs['dimension'][0]
+            nodeCount: np.uint64 = root_group.attrs['nodeCount'][0]
+            mesh_info = {
+                'n_nodes': nodeCount,
+                'n_faces': root_group.attrs['faceCount'][0],
+                'n_cells': root_group.attrs['cellCount'][0],
+            }
+            pv_points = np.zeros((nodeCount, 3), dtype=np.float64)
+
+            # nodes
+            zoneTopology: Group = root_group['nodes/zoneTopology']
+            nZones: np.uint64 = zoneTopology.attrs['nZones'][0]
+            minId: Dataset = zoneTopology['minId']
+            maxId: Dataset = zoneTopology['maxId']
+
+            coords_group: Group = root_group['nodes/coords']
+            for i in range(nZones):
+                pv_points[minId[i] - 1: maxId[i], :dimension] = coords_group[f'{i + 1}'][:]
+
+            # faces
+            # zoneTopology: Group = root_group['faces/zoneTopology']
+            # zoneType: Dataset = faces_zone_topo['zoneType']
+            faces_nodes_group: Group = root_group['faces/nodes']
+            nSections: np.uint64 = faces_nodes_group.attrs['nSections'][0]
+
+            nnodes_list, nodes_list = [], []
+            for i in range(nSections):
+                # if (not include_interior) and int(zoneType[i]) == 2:
+                # continue
+                section_group: Group = faces_nodes_group[f"{i + 1}"]
+                nnodes_list.append(section_group['nnodes'][:])
+                nodes_list.append(section_group['nodes'][:] - 1)
+
+            nnodes = np.concatenate(nnodes_list)
+            nodes = np.concatenate(nodes_list)
+            offsets = np.cumsum(nnodes) - nnodes
+            pv_faces = np.insert(nodes, offsets, nnodes)
+
+        mesh = PolyData(
+            pv_points,
+            faces=pv_faces if dimension == 3 else None,
+            lines=pv_faces if dimension == 2 else None,
+        )
+
+    plotter = MeshPlotter(mesh, dimension, mesh_info)
+    plotter.show(title=file_path)
+
+
+def plot_data(file_path: str) -> None:
+    """Visualize Fluent .cas.h5 + .dat.h5 solution data with interactive cross-sections.
+
+    Uses PyVista's built-in VTK FLUENTCFF Reader to load both mesh and solution data
+    from .cas.h5 and .dat.h5 files. Provides an interactive plane widget for creating
+    cross-sections (slices) with selectable field variables and color mapping.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the .cas.h5 file. The corresponding .dat.h5 file must be in the same
+        directory with the same base name (e.g. ``case.cas.h5`` -> ``case.dat.h5``).
+    """
+    import os
+
+    if not os.path.exists(file_path.replace('.cas.h5', '.dat.h5')):
+        print("No .dat.h5 file found.")
+        print("Make sure the .dat.h5 file exists alongside the .cas.h5 file.")
+        return
+
+    mesh = read(file_path)
+    plotter = DataPlotter(mesh)
+    plotter.show(title=file_path)
