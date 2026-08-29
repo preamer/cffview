@@ -275,8 +275,16 @@ class DataPlotter(BasePlotter):
         self.pl.render()
 
     def _add_scalar_slider_widget(self) -> _vtk.vtkSliderWidget:
+        index_text = self.pl.add_text(
+            '0',
+            position=(250, 730),
+            font_size=12,
+        )
+
         def change_scalar(value: float) -> None:
-            self._set_scalars(self.var_names[int(value)])
+            index = int(value)
+            index_text.input = str(index)
+            self._set_scalars(self.var_names[index])
 
         scalar_slider: _vtk.vtkSliderWidget = self.pl.add_slider_widget(
             change_scalar,
@@ -289,8 +297,8 @@ class DataPlotter(BasePlotter):
             slider_width=0.03,
             tube_width=0.03,
             title_height=0.03,
-            fmt='%.0f',
         )
+        scalar_slider.slider_representation.show_slider_label = False
         scalar_slider.callback = change_scalar
         return scalar_slider
 
