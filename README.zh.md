@@ -46,7 +46,7 @@ cffview <文件> [选项]
 | `--interfaces` | 网格交界面设置 |
 | `--ne`, `--named-expressions` | 命名表达式 |
 | `--cff`, `--custom-field-functions` | 自定义场函数 |
-| `--units [关键字 ...]` | 单位表（可按一个或多个关键字过滤；为空表示默认 SI 单位制） |
+| `--units [关键字 ...]` | 显示修改过的单位（可按一个或多个关键字过滤；为空表示默认 SI 单位制） |
 | `--solution` | 离散格式、松弛因子等求解设置 |
 | `--rd`, `--report-definitions` | 报告定义 |
 | `--plotsets` | 图表集配置 |
@@ -56,6 +56,7 @@ cffview <文件> [选项]
 | `--surfaces` | 面、线、等值面等设置 |
 | `--contours` | 后处理云图配置 |
 | `--vectors` | 后处理矢量图配置 |
+| `--pathlines` | 后处理流线图配置 |
 | `--xy-plot` | 后处理xy图配置 |
 | `--save` | 将输出保存为 `<文件名>.json` (`文件名`可选，默认与输入文件相同) |
 | `--plot [out\|xy\|dat]` | 绘制数据文件；不带 `TYPE` 时按文件扩展名推断 |
@@ -64,8 +65,8 @@ cffview <文件> [选项]
 
 > [!TIP]
 > 长选项可以缩写成任意无歧义的前缀。例如 `--inter` 相当于 `--interfaces`，
-> `--so` 相当于 `--solver`。有歧义的前缀（如 `--i` 同时可能是 `--interfaces`
-> 或 `--iter`）会被拒绝并报错。
+> `--vec` 相当于 `--vectors`。有歧义的前缀（如 `--so` 同时可能是 `--solver`
+> 或 `--solution`）会被拒绝并报错。
 
 ### 示例
 

@@ -129,6 +129,16 @@
             )
         )
     )
+    (
+        (name . "mass-bal") 
+        (report-definition single-val-expression 
+            (old-props average-over 1 define "{mass-tot}/{mass-in}" retain-instantaneous-values? #f name "mass-bal" type "single-val-expression") 
+            (average-over . 1) 
+            (define . "{mass-tot}/{mass-in}") 
+            (list-valid-report-names . "") 
+            (retain-instantaneous-values? . #f)
+        )
+    )
 )
 
 (monitor/average-over-state 
@@ -144,6 +154,10 @@
         ("lv_heat" 
             (266.) 
             (0. 2948. (-157.1307934899238))
+        )
+        ("mass-bal" 
+            (0.) 
+            (0. 43. (-4.341824809981527e-05))
         )
     )
 )

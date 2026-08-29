@@ -52,7 +52,7 @@ cffview <file> [options]
 | `--interfaces` | Mesh interfaces settings |
 | `--ne`, `--named-expressions` | Named expressions |
 | `--cff`, `--custom-field-functions` | Custom field functions |
-| `--units [KEYWORD ...]` | Unit table (filtered by one or more keywords; empty means default SI units) |
+| `--units [KEYWORD ...]` | Show changed units (filtered by one or more keywords; empty means default SI units) |
 | `--solution` | Solution methods and controls |
 | `--rd`, `--report-definitions` | Report definitions |
 | `--plotsets` | Plot sets |
@@ -62,6 +62,7 @@ cffview <file> [options]
 | `--surfaces` | Surfaces settings |
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
+| `--pathlines` | Graphics pathlines settings |
 | `--xy-plot` | Graphics xy-plot settings |
 | `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
 | `--plot [out\|xy\|dat]` | Plot a data file; without `TYPE`, infer from the file extension |
@@ -70,8 +71,8 @@ Multiple flags can be combined freely. Case settings flags (`--solver`, `--mat`,
 
 > [!TIP]
 > Long options can be abbreviated to any unambiguous prefix. For example,
-> `--inter` works for `--interfaces` and `--so` for `--solver`. An ambiguous
-> prefix (e.g. `--i`, which could match `--interfaces` or `--iter`) is
+> `--inter` works for `--interfaces` and `--vec` for `--vectors`. An ambiguous
+> prefix (e.g. `--so`, which could match `--solver` or `--solution`) is
 > rejected with an error.
 
 ### Examples

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--pathlines` for showing graphics pathlines settings.
+- `iso-surface` and `iso-clip-new` surface types to the `--surfaces` output.
+- `Time Scale Factor` to the `--solution` output when the Coupled scheme's pseudo time method is enabled.
+
+### Fixed
+
+- Pseudo time method detection now uses the `dt-method` code instead of `user-defined-settings?`.
+- `average-over-state` value for `single-val-expression` report definitions.
+
 ## [v0.5.0] - 2026-08-29
 
 ### Added

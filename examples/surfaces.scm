@@ -127,5 +127,28 @@
             (zone-surface 4197 39) 
             #f
         )
+        (4213 () 
+            (iso-surface 4213 () 
+                "z-coordinate" 
+                '(-0.044)
+            ) 
+            #f
+        ) 
+        (4212 (4197) 
+            (iso-clip-new 4212 (4197) 
+                "z-coordinate" 
+                -0.1018384 
+                -0.044
+            ) 
+            #f
+        ) 
+        (4211 (4197) 
+            (iso-clip-new 4211 (4197) 
+            "x-coordinate" 
+            -0.362715 
+            -0.1725382
+            ) 
+            #f
+        )
     )
 )

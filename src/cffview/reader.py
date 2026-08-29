@@ -485,12 +485,12 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
 
     flow_scheme = data['solution-methods']['flow']
     if flow_scheme == 'Coupled':
-        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
+        key = 'pseudo-time-method/coupled-pbns/dt-method'
     else:
-        key = 'pseudo-time-method/segregated-pbns/user-defined-settings?'
-    enabled = re.search(rf'\({re.escape(key)}\s+([^)]+)\)', general).group(1)
+        key = 'pseudo-time-method/segregated-pbns/dt-method'
+    method_code = re.search(rf'\({key}\s+([\d.]+)\)', general).group(1)
     data['solution-methods']['Pseudo Time Method'] = (
-        'Off' if enabled == '#f'
+        'Off' if method_code == '0'
         else 'Global Time Step' if flow_scheme == 'Coupled'
         else 'Local Time Step'
     )
@@ -509,7 +509,8 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
         data['solution-methods']['High Order Term Relaxation'] = values
 
     if flow_scheme == 'Coupled':
-        key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
+        if data['solution-methods']['Pseudo Time Method'] != 'Off':
+            data['solution-methods']['Time Scale Factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
         for eq in ('pressure', 'mom'):
             data['solution-controls'][eq] = re.search(
                 rf'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
@@ -604,7 +605,7 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
         name = rd[0]
         data[name]['iter-range'] = rd[2][0] + ' -> ' + rd[2][1]
 
-        if data[name].get('per-zone?') == '#f' or data[name].get('per-surface?') == '#f':
+        if data[name].get('per-zone?') == '#f' or data[name].get('per-surface?') == '#f' or data[name].get('type') == 'single-val-expression':
             value = rd[2][2]
             data[name]['average-over-state'] = value
         else:
@@ -768,6 +769,20 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
                         'reference point': ref_point,
                     }
                 }
+            case ['iso-surface', virtual_id, _, reference, [iso_values]]:
+                data[virtual_id_name_map[virtual_id]] = {
+                    'type': 'iso-surface',
+                    'reference': reference,
+                    'iso-values': iso_values,
+                }
+            case ['iso-clip-new', virtual_id, [*clip_surfaces_vid], reference, min_value, max_value]:
+                data[virtual_id_name_map[virtual_id]] = {
+                    'type': 'iso-clip-new',
+                    'clip surfaces': [virtual_id_name_map[vid] for vid in clip_surfaces_vid],
+                    'reference': reference,
+                    'min': min_value,
+                    'max': max_value,
+                }
             case _:
                 continue
 
@@ -823,6 +838,30 @@ def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
                     continue
 
     return {'vectors': data}
+
+
+@register_reader('pathlines')
+def _read_pathlines(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    pathlines = re.search(r'(\(graphics/pathlines\s.*)', general, re.M).group(1)
+    pathlines_list = stringify_nested_list(sexpdata.loads(pathlines, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for pathline in pathlines_list:
+        name = pathline[0][2]
+        data[name] = {}
+        for pathline_property in pathline[1:]:
+            match pathline_property:
+                case [property_name, '.', value]:
+                    data[name][property_name] = value
+                case ['surfaces-list', *surfaces_list]:
+                    data[name]['surfaces-list'] = surfaces_list
+                case [property_name, *values] if property_name in ('range-options', 'options', 'color-map', 'log-scale', 'auto-scale', 'labels'):
+                    data[name][property_name] = {value[0]: value[2] for value in values}
+                case _:
+                    continue
+
+    return {'pathlines': data}
 
 
 @register_reader('xy_plot')

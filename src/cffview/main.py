@@ -54,6 +54,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--surfaces",), "show surfaces settings"),
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
+        (("--pathlines",), "show graphics pathlines settings"),
         (("--xy-plot",), "show graphics xy-plot settings"),
     ]
     for flags, help_text in ARGUMENTS:

@@ -16,7 +16,7 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 
 | File | Source in the case | cffview option | Contents |
 |---|---|---|---|
-| `general.scm` | `/settings/Rampant Variables` | `--solver`, `--mat`, `--solution`, `--rd`, `--plotsets`, `--monitorsets`, `--residuals`, `--iter`, `--contours`, `--vectors`, `--xy-plot`, ... | Full solver settings; source of most sections below |
+| `general.scm` | `/settings/Rampant Variables` | `--solver`, `--mat`, `--solution`, `--rd`, `--plotsets`, `--monitorsets`, `--residuals`, `--iter`, `--contours`, `--vectors`, `--pathlines`, `--xy-plot`, ... | Full solver settings; source of most sections below |
 | `case-config.scm` | `(case-config ...)` inside Rampant Variables | `--solver` | Solver configuration block (segregated/coupled, steady/transient, dimension, turbulence/radiation models...) |
 | `context.scm` | `(context/map-r17+ ...)` inside Rampant Variables | — | Multi-line context variables (internal solver settings) |
 | `materials.scm` | `(materials ...)` inside Rampant Variables | `--mat` | Material properties (density, specific heat, conductivity...) |
@@ -29,6 +29,7 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 | `residuals.scm` | `(residuals ...)` inside Rampant Variables | `--residuals` | Residual settings |
 | `contours.scm` | `(graphics/contours ...)` inside Rampant Variables | `--contours` | Graphics contour definitions |
 | `vectors.scm` | `(graphics/vectors ...)` inside Rampant Variables | `--vectors` | Graphics vector definitions |
+| `pathlines.scm` | `(graphics/pathlines ...)` inside Rampant Variables | `--pathlines` | Graphics pathline definitions |
 | `xy-plot.scm` | `(graphics/xy-plot ...)` inside Rampant Variables | `--xy-plot` | Graphics XY-plot definitions |
 | `cortex.scm` | `/settings/Cortex Variables` | `--surfaces`, `--cff`, `--units` | GUI state: reference frames, scenes, surfaces, cell functions, unit table |
 | `surfaces.scm` | `(surfaces/groups ...)` inside Cortex Variables | `--surfaces` | User-defined surface groups and definitions |
