@@ -469,7 +469,7 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
     data: dict[str, Any] = {'solution-methods': {}, 'solution-controls': {}}
     cell_lsq = re.search(r'\(recon/cell-lsq\?\s+([^)]+)\)', general).group(1)
     node_lsq = re.search(r'\(recon/node-lsq\?\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['gradient'] = (
+    data['solution-methods']['Gradient'] = (
         'Least Squares Cell-Based' if cell_lsq == '#t'
         else 'Green-Gauss Node-Based' if node_lsq == '#t'
         else 'Green-Gauss Cell-Based'
@@ -477,17 +477,36 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
     for eq in ('flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'disco'):
         data['solution-methods'][eq] = disc_scheme.get(eq)
 
+    flux_auto = re.search(r'\(pbs/flux-auto-select\?\s+([^)]+)\)', general).group(1)
+    data['solution-methods']['Flux Type'] = 'Auto Select' if flux_auto == '#t' else ''
+    if data['solution-methods']['Flux Type'] != 'Auto Select':
+        flux_index = re.search(r'\(pbs/flux-index\s+([\d.]+)\)', general).group(1)
+        data['solution-methods']['Flux Type'] = 'Rhie-Chow: distance based' if flux_index == '0' else 'Rhie-Chow: momentum based'
+
     flow_scheme = data['solution-methods']['flow']
     if flow_scheme == 'Coupled':
         key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
     else:
         key = 'pseudo-time-method/segregated-pbns/user-defined-settings?'
     enabled = re.search(rf'\({re.escape(key)}\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['pseudo-time-method'] = (
+    data['solution-methods']['Pseudo Time Method'] = (
         'Off' if enabled == '#f'
         else 'Global Time Step' if flow_scheme == 'Coupled'
         else 'Local Time Step'
     )
+
+    cell_lsf = re.search(r'\(recon/cell-lsf\?\s+([^)]+)\)', general).group(1)
+    data['solution-methods']['Wraped-Face Gradient Correction'] = 'On' if cell_lsf == '#t' else 'Off'
+    relax = re.search(r'\(recon/relax/relax\?\s+([^)]+)\)', general).group(1)
+    data['solution-methods']['High Order Term Relaxation'] = 'On' if relax == '#t' else 'Off'
+    if data['solution-methods']['High Order Term Relaxation'] == 'On':
+        values = {}
+        relax_limit_mode = re.search(r'\(recon/relax-limit-mode\s+([\d.]+)\)', general).group(1)
+        values['Type'] = 'Standard' if relax_limit_mode == '0' else 'Convection Only'
+        variables = re.search(r'\(recon/relax/all\?\s+([^)]+)\)', general).group(1)
+        values['Variables'] = 'All Variables' if variables == '#t' else 'Flow Variables Only'
+        values['Relaxation Factor'] = re.search(r'\(recon/relax/steady-urf\s+([\d.]+)\)', general).group(1)
+        data['solution-methods']['High Order Term Relaxation'] = values
 
     if flow_scheme == 'Coupled':
         key = 'pseudo-time-method/coupled-pbns/user-defined-settings?'
@@ -502,7 +521,22 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
                 general
             ).group(1)
     else:
-        pseudo_time_method = data['solution-methods']['pseudo-time-method']
+        if flow_scheme == 'SIMPLEC':
+            data['solution-methods']['Skewness Correction'] = re.search(
+                r'\(simplec/skew-iter\s+([\d.]+)\)', general
+            ).group(1)
+        elif flow_scheme == 'PISO':
+            data['solution-methods']['Skewness Correction'] = re.search(
+                r'\(piso/skew-iter\s+([\d.]+)\)', general
+            ).group(1)
+            data['solution-methods']['Neighbor Correction'] = re.search(
+                r'\(piso/neighbor-iter\s+([\d.]+)\)', general
+            ).group(1)
+            data['solution-methods']['Skewness-Neighbor Coupling'] = re.search(
+                r'\(piso/coupling\?\s+([^)]+)\)', general
+            ).group(1)
+
+        pseudo_time_method = data['solution-methods']['Pseudo Time Method']
         implicit_relax_prefix, explicit_relax_prefix = (
             ('', '') if pseudo_time_method == 'Off' else ('dual-ts-implicit-', 'dual-ts-explicit-')
         )
