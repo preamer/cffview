@@ -49,6 +49,7 @@ class BoundaryEnums:
     class DIRECTION_SPEC(_CodeEnum):
         DIRECTION_VECTOR = ('0', 'Direction Vector')
         NORMAL_TO_BOUNDARY = ('1', 'Normal to Boundary')
+        FROM_NEIRHBORING_CELL = ('2', 'From Neighboring Cell')
 
     class COORDINATE_SYSTEM(_CodeEnum):
         CARTESIAN = ('0', 'Cartesian(X, Y, Z)')
@@ -65,6 +66,10 @@ class BoundaryEnums:
         MASS_FLOW_RATE = ('0', 'Mass Flow Rate')
         MASS_FLUX = ('1', 'Mass Flux')
         MASS_FLUX_WITH_AVERAGE_MASS_FLUX = ('2', 'Mass Flux with Average Mass Flux')
+
+    class P_BACKFLOW_SPEC_GEN(_CodeEnum):
+        TOTAL_PRESSURE = ('0', 'Total Pressure')
+        STATIC_PRESSURE = ('1', 'Static Pressure')
     # endregion momentum
 
     # region thermal
@@ -211,7 +216,7 @@ def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
 def _filter_direction_spec(data: dict[str, str]) -> None:
     # TODO: complete this function for 'Local Cylindrical(Radial, Tangential, Axial)' and 'Local Cylindrical Swirl'
     """Filter direction_spec and corresponding coordinate_system."""
-    if data['direction_spec'] == BoundaryEnums.DIRECTION_SPEC.NORMAL_TO_BOUNDARY:
+    if data['direction_spec'] != BoundaryEnums.DIRECTION_SPEC.DIRECTION_VECTOR:
         for key in ('ni', 'nj', 'nk', 'u', 'v', 'w', 'coordinate_system'):
             data.pop(key, None)
     else:
@@ -497,15 +502,29 @@ class PressureOutlet:
     name: str
     id_: str
 
+    frame_of_reference: str = grouped('momentum')
     p: str = grouped('momentum')
+    p_profile_multiplier: str = grouped('momentum')
 
-    ke_spec: str = grouped('momentum')
+    direction_spec: str = grouped('momentum')
+    coordinate_system: str = grouped('momentum')
+    ni: str = grouped('momentum')
+    nj: str = grouped('momentum')
+    nk: str = grouped('momentum')
+    u: str = grouped('momentum')
+    v: str = grouped('momentum')
+    w: str = grouped('momentum')
+
+    p_backflow_spec_gen: str = grouped('momentum')
+
     prevent_reverse_flow: str = grouped('momentum')
     radial: str = grouped('momentum')
     avg_press_spec: str = grouped('momentum')
+    targeted_mf_boundary: str = grouped('momentum')
+
+    ke_spec: str = grouped('momentum')
     turb_intensity: str = grouped('momentum')
     turb_length_scale: str = grouped('momentum')
-    targeted_mf_boundary: str = grouped('momentum')
     turb_hydraulic_diam: str = grouped('momentum')
     turb_viscosity_ratio: str = grouped('momentum')
 
@@ -522,13 +541,15 @@ class PressureOutlet:
         _map_consts(data)
 
         if self.prevent_reverse_flow == '#t':
-            for key in [
-                't', 'ke_spec', 'turb_intensity', 'turb_length_scale',
-                'targeted_mf_boundary', 'turb_hydraulic_diam', 'turb_viscosity_ratio',
-            ]:
+            for key in (
+                'frame_of_reference', 'direction_spec', 'p_backflow_spec_gen',
+                'ke_spec', 'turb_intensity', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio',
+                't0',
+            ):
                 data.pop(key, None)
         else:
             _filter_turbulence(data, turb_model)
+            _filter_direction_spec(data)
 
         _filter_radiation(data, rad_model)
         return _group_by_category(self, data)
