@@ -2,9 +2,19 @@
 
 Defines the boundary condition dataclasses (:class:`VelocityInlet`,
 :class:`MassFlowInlet`, ...) produced by :func:`cffview.reader.read_case`,
-together with :class:`BoundaryFactory` for creating them from the raw
-Scheme ``Thread Variables`` and :class:`BoundaryConsts` for mapping numeric
-codes to readable strings.
+together with:
+
+- :class:`_CodeEnum`: base ``StrEnum`` whose members map a Fluent numeric
+  code to a readable display label (``member.code`` + ``from_code``).
+- :class:`BoundaryEnums`: the per-field code tables (velocity spec, flow
+  spec, thermal BC, radiation BC, ...).
+- :class:`BoundaryFactory`: creates a boundary dataclass from the raw
+  Scheme ``Thread Variables``.
+- :class:`ToDictMixin`: shared ``to_dict`` pipeline — maps numeric codes,
+  applies every ``_filter_*`` method (auto-discovered via
+  :meth:`ToDictMixin._filter_methods`) and groups the fields into
+  categories (momentum / thermal / radiation / ...) declared by each
+  field's ``grouped()`` metadata tag.
 """
 
 from enum import StrEnum
@@ -141,15 +151,194 @@ class BoundaryFactory:
         return boundary_cls(name, id_)
 
 
-# ------------------------------------------------- shared to_dict helpers
+class ToDictMixin:
+    def _map_consts(self, data: dict[str, str]) -> None:
+        """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
+        for key in filter(lambda k: k.upper() in BoundaryEnums.__dict__, data.keys()):
+            data[key] = BoundaryEnums[key].from_code(data[key]) or 'unknown'
 
+    def _filter_sources(self, data: dict[str, str]) -> None:
+        """Drop ``source_terms`` when the ``sources`` switch is off."""
+        if data.get('sources') == '#f':
+            data.pop('source_terms', None)
 
-TURBULENCE_KEYS = (
-    'ke_spec', 'turb_intensity', 'turb_length_scale',
-    'turb_hydraulic_diam', 'turb_viscosity_ratio',
-)
+    def _filter_porous(self, data: dict[str, str]) -> None:
+        if data.get('porous') == '#f':
+            for f in fields(self):
+                if f.metadata.get('group') == 'porous-zone':
+                    data.pop(f.name, None)
+        else:
+            match data.get('dir_spec_cond'):
+                # TODO
+                case BoundaryEnums.DIR_SPEC_COND.CARTESIAN:
+                    ...
+                case BoundaryEnums.DIR_SPEC_COND.CONICAL:
+                    ...
+                case BoundaryEnums.DIR_SPEC_COND.CURVILINEAR_COORDINATE_SYSTEM:
+                    ...
 
-RADIATION_KEYS = ('radiation_bc', 'in_emiss', 't_b_b_spec', 't_b_b')
+    def _filter_velocity_spec(self, data: dict[str, str]) -> None:
+        match data.get('velocity_spec'):
+            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_AND_DIRECTION:
+                data.pop('u', None)
+                data.pop('v', None)
+                data.pop('w', None)
+            case BoundaryEnums.VELOCITY_SPEC.COMPONENTS:
+                data.pop('ni', None)
+                data.pop('nj', None)
+                data.pop('nk', None)
+            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_NORMAL_TO_BOUNDARY:
+                for key in ('coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w'):
+                    data.pop(key, None)
+
+    def _filter_turbulence(self, data: dict[str, str]) -> None:
+        """Keep only the turbulence parameters relevant to the active turbulence model."""
+        turb_model = self._turb_model
+        if turb_model in ('inviscid', 'lam'):
+            for key in (
+                'ke_spec', 'turb_intensity', 'turb_length_scale',
+                'turb_hydraulic_diam', 'turb_viscosity_ratio',
+                'rough_bc', 'roughness_height', 'roughness_const',
+            ):
+                data.pop(key, None)
+        else:
+            match data.get('ke_spec'):
+                case BoundaryEnums.KE_SPEC.INTENSITY_AND_LENGTH_SCALE:
+                    data.pop('turb_viscosity_ratio', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case BoundaryEnums.KE_SPEC.INTENSITY_AND_VISCOSITY_RATIO:
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_hydraulic_diam', None)
+                case BoundaryEnums.KE_SPEC.INTENSITY_AND_HYDRAULIC_DIAMETER:
+                    data.pop('turb_length_scale', None)
+                    data.pop('turb_viscosity_ratio', None)
+
+    def _filter_flow_spec(self, data: dict[str, str]) -> None:
+        match data.get('flow_spec'):
+            case BoundaryEnums.FLOW_SPEC.MASS_FLOW_RATE:
+                data.pop('mass_flux', None)
+                data.pop('mass_flux_ave', None)
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX:
+                data.pop('mass_flow', None)
+                data.pop('mass_flux_ave', None)
+            case BoundaryEnums.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
+                data.pop('mass_flow', None)
+
+    def _filter_direction_spec(self, data: dict[str, str]) -> None:
+        """Filter direction_spec and corresponding coordinate_system."""
+        if data.get('direction_spec') != BoundaryEnums.DIRECTION_SPEC.DIRECTION_VECTOR:
+            for key in ('ni', 'nj', 'nk', 'u', 'v', 'w', 'coordinate_system'):
+                data.pop(key, None)
+        else:
+            match data.get('coordinate_system'):
+                # TODO
+                case BoundaryEnums.COORDINATE_SYSTEM.CARTESIAN:
+                    for key in ('ni', 'nj', 'nk'):
+                        data.pop(key, None)
+                case BoundaryEnums.COORDINATE_SYSTEM.CYLINDRICAL:
+                    for key in ('u', 'v', 'w'):
+                        data.pop(key, None)
+                case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL:
+                    ...
+                case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL_SWIRL:
+                    ...
+
+    def _filter_reverse_flow(self, data: dict[str, str]) -> None:
+        if data.get('prevent_reverse_flow') == '#t':
+            for key in (
+                'frame_of_reference', 'direction_spec', 'p_backflow_spec_gen',
+                'ke_spec', 'turb_intensity', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio',
+                't0',
+            ):
+                data.pop(key, None)
+
+    def _filter_radiation(self, data: dict[str, str]) -> None:
+        """Map radiation codes and drop radiation fields when no radiation model is active."""
+        rad_model = self._rad_model
+        if rad_model != 'off':
+            if data.get('t_b_b_spec') == BoundaryEnums.T_B_B_SPEC.BOUNDARY_TEMPERATURE:
+                data.pop('t_b_b', None)
+            if data.get('radiation_bc') == BoundaryEnums.RADIATION_BC.SEMI_TRANSPARENT:
+                data.pop('in_emiss', None)
+        else:
+            data.pop('radiating', None)
+            for f in fields(self):
+                if f.metadata.get('group') == 'radiation':
+                    data.pop(f.name, None)
+
+    def _filter_thermal_bc(self, data: dict[str, str]) -> None:
+        match data.get('thermal_bc'):
+            case BoundaryEnums.THERMAL_BC.TEMPERATURE:
+                for key in ('q', 'h', 'tinf', 'ex_emiss', 'trad'):
+                    data.pop(key, None)
+            case BoundaryEnums.THERMAL_BC.HEAT_FLUX:
+                for key in ('t', 'h', 'tinf', 'ex_emiss', 'trad'):
+                    data.pop(key, None)
+            case BoundaryEnums.THERMAL_BC.CONVECTION:
+                for key in ('q', 't', 'ex_emiss', 'trad'):
+                    data.pop(key, None)
+            case BoundaryEnums.THERMAL_BC.COUPLED | BoundaryEnums.THERMAL_BC.VIA_SYSTEM_COUPLING:
+                for key in ('q', 't', 'h', 'tinf', 'ex_emiss', 'trad'):
+                    data.pop(key, None)
+            case BoundaryEnums.THERMAL_BC.RADIATION:
+                for key in ('q', 't', 'h', 'tinf'):
+                    data.pop(key, None)
+            case BoundaryEnums.THERMAL_BC.MIXED:
+                for key in ('q', 't'):
+                    data.pop(key, None)
+
+        if data.get('planar_conduction') == '#f':
+            data.pop('shell_conduction', None)
+
+    def _filter_methods(self) -> list[str]:
+        """All ``_filter_*`` methods in class-definition order (base to subclass)."""
+        names: list[str] = []
+        for cls in reversed(type(self).__mro__):
+            for name, value in vars(cls).items():
+                if name.startswith('_filter_') and name != '_filter_methods' and callable(value):
+                    names.append(name)
+        return names
+
+    def _group_by_category(self, data: dict[str, str]) -> dict:
+        """Split a flat boundary dict into category sub-dicts (momentum / thermal / radiation / ...).
+
+        The categories come from each dataclass field's ``metadata['group']`` tag
+        (see :func:`grouped`). ``name`` and ``id_`` stay at the top level; keys not
+        tagged are collected under ``other`` (omitted when empty).
+        """
+        result: dict = {'name': data['name'], 'id_': data['id_'], 'general': {}}
+
+        groups: dict[str, list[str]] = {}
+        for f in fields(self):
+            group = f.metadata.get('group')
+            if group:
+                groups.setdefault(group, []).append(f.name)
+
+        categorized: set[str] = set()
+        for category, keys in groups.items():
+            category_data = {key: data[key] for key in keys if key in data}
+            if category_data:
+                result[category] = category_data
+            categorized.update(keys)
+
+        if other := {
+            key: value for key, value in data.items()
+            if key not in categorized and key not in ('name', 'id_')
+        }:
+            result['general'] = other
+        else:
+            result.pop('general')
+
+        return result
+
+    def to_dict(self, turb_model: str, rad_model: str) -> dict:
+        data = self.__dict__.copy()
+        self._turb_model = turb_model
+        self._rad_model = rad_model
+        self._map_consts(data)
+        for name in self._filter_methods():
+            getattr(self, name)(data)
+        return self._group_by_category(data)
 
 
 def grouped(group: str, default: str = '') -> str:
@@ -157,104 +346,11 @@ def grouped(group: str, default: str = '') -> str:
     return field(default=default, metadata={'group': group})
 
 
-def _group_by_category(cls, data: dict[str, str]) -> dict:
-    """Split a flat boundary dict into category sub-dicts (momentum / thermal / radiation / ...).
-
-    The categories come from each dataclass field's ``metadata['group']`` tag
-    (see :func:`grouped`). ``name`` and ``id_`` stay at the top level; keys not
-    tagged are collected under ``other`` (omitted when empty).
-    """
-    result: dict = {'name': data['name'], 'id_': data['id_'], 'general': {}}
-
-    groups: dict[str, list[str]] = {}
-    for f in fields(cls):
-        group = f.metadata.get('group')
-        if group:
-            groups.setdefault(group, []).append(f.name)
-
-    categorized: set[str] = set()
-    for category, keys in groups.items():
-        category_data = {key: data[key] for key in keys if key in data}
-        if category_data:
-            result[category] = category_data
-        categorized.update(keys)
-
-    if other := {
-        key: value for key, value in data.items()
-        if key not in categorized and key not in ('name', 'id_')
-    }:
-        result['general'] = other
-    else:
-        result.pop('general')
-
-    return result
-
-
-def _map_consts(data: dict[str, str]) -> None:
-    """Replace numeric codes with readable strings via :class:`BoundaryConsts`."""
-    for key in filter(lambda k: k.upper() in BoundaryEnums.__dict__, data.keys()):
-        data[key] = BoundaryEnums[key].from_code(data[key]) or 'unknown'
-
-
-def _filter_sources(data: dict[str, str]) -> None:
-    """Drop ``source_terms`` when the ``sources`` switch is off."""
-    if data['sources'] == '#f':
-        data.pop('source_terms', None)
-
-
-def _filter_turbulence(data: dict[str, str], turb_model: str | None) -> None:
-    """Keep only the turbulence parameters relevant to the active turbulence model."""
-    if turb_model in ('inviscid', 'lam'):
-        for key in TURBULENCE_KEYS:
-            data.pop(key, None)
-        return
-    match data['ke_spec']:
-        case BoundaryEnums.KE_SPEC.INTENSITY_AND_LENGTH_SCALE:
-            data.pop('turb_viscosity_ratio', None)
-            data.pop('turb_hydraulic_diam', None)
-        case BoundaryEnums.KE_SPEC.INTENSITY_AND_VISCOSITY_RATIO:
-            data.pop('turb_length_scale', None)
-            data.pop('turb_hydraulic_diam', None)
-        case BoundaryEnums.KE_SPEC.INTENSITY_AND_HYDRAULIC_DIAMETER:
-            data.pop('turb_length_scale', None)
-            data.pop('turb_viscosity_ratio', None)
-
-
-def _filter_direction_spec(data: dict[str, str]) -> None:
-    # TODO: complete this function for 'Local Cylindrical(Radial, Tangential, Axial)' and 'Local Cylindrical Swirl'
-    """Filter direction_spec and corresponding coordinate_system."""
-    if data['direction_spec'] != BoundaryEnums.DIRECTION_SPEC.DIRECTION_VECTOR:
-        for key in ('ni', 'nj', 'nk', 'u', 'v', 'w', 'coordinate_system'):
-            data.pop(key, None)
-    else:
-        match data['coordinate_system']:
-            case BoundaryEnums.COORDINATE_SYSTEM.CARTESIAN:
-                for key in ('ni', 'nj', 'nk'):
-                    data.pop(key, None)
-            case BoundaryEnums.COORDINATE_SYSTEM.CYLINDRICAL:
-                for key in ('u', 'v', 'w'):
-                    data.pop(key, None)
-            case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL:
-                ...
-            case BoundaryEnums.COORDINATE_SYSTEM.LOCAL_CYLINDRICAL_SWIRL:
-                ...
-
-
-def _filter_radiation(data: dict[str, str], rad_model: str | None) -> None:
-    """Map radiation codes and drop radiation fields when no radiation model is active."""
-    if rad_model not in (None, 'off'):
-        if data['t_b_b_spec'] == BoundaryEnums.T_B_B_SPEC.BOUNDARY_TEMPERATURE:
-            data.pop('t_b_b', None)
-    else:
-        for key in RADIATION_KEYS:
-            data.pop(key, None)
-
-
 # region Cell Zone
 
 @dataclass
 @BoundaryFactory.register('fluid')
-class Fluid:
+class Fluid(ToDictMixin):
     name: str
     id_: str
 
@@ -304,35 +400,10 @@ class Fluid:
     porosity: str = grouped('porous-zone')
     viscosity_ratio: str = grouped('porous-zone')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_sources(data)
-
-        if rad_model == 'off':
-            data.pop('radiating', None)
-
-        if data['porous'] == '#f':
-            for f in fields(self):
-                if f.metadata.get('group') == 'porous-zone':
-                    data.pop(f.name, None)
-        else:
-            match data['dir_spec_cond']:
-                # TODO
-                case BoundaryEnums.DIR_SPEC_COND.CARTESIAN:
-                    ...
-                case BoundaryEnums.DIR_SPEC_COND.CONICAL:
-                    ...
-                case BoundaryEnums.DIR_SPEC_COND.CURVILINEAR_COORDINATE_SYSTEM:
-                    ...
-
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('solid')
-class Solid:
+class Solid(ToDictMixin):
     name: str
     id_: str
     material: str = ''
@@ -351,14 +422,6 @@ class Solid:
     ak: str = grouped('reference-frame')
     axis_direction_component: str = grouped('reference-frame')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _filter_sources(data)
-        if rad_model == 'off':
-            data.pop('radiating', None)
-
-        return _group_by_category(self, data)
 
 # endregion Cell Zone
 
@@ -367,7 +430,7 @@ class Solid:
 
 @dataclass
 @BoundaryFactory.register('velocity-inlet')
-class VelocityInlet:
+class VelocityInlet(ToDictMixin):
     name: str
     id_: str
 
@@ -396,32 +459,10 @@ class VelocityInlet:
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_turbulence(data, turb_model)
-
-        match data['velocity_spec']:
-            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_AND_DIRECTION:
-                data.pop('u', None)
-                data.pop('v', None)
-                data.pop('w', None)
-            case BoundaryEnums.VELOCITY_SPEC.COMPONENTS:
-                data.pop('ni', None)
-                data.pop('nj', None)
-                data.pop('nk', None)
-            case BoundaryEnums.VELOCITY_SPEC.MAGNITUDE_NORMAL_TO_BOUNDARY:
-                for key in ['coordinate_system', 'ni', 'nj', 'nk', 'u', 'v', 'w']:
-                    data.pop(key, None)
-
-        _filter_radiation(data, rad_model)
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('mass-flow-inlet')
-class MassFlowInlet:
+class MassFlowInlet(ToDictMixin):
     name: str
     id_: str
 
@@ -454,30 +495,10 @@ class MassFlowInlet:
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_turbulence(data, turb_model)
-        _filter_radiation(data, rad_model)
-        _filter_direction_spec(data)
-
-        match data['flow_spec']:
-            case BoundaryEnums.FLOW_SPEC.MASS_FLOW_RATE:
-                data.pop('mass_flux', None)
-                data.pop('mass_flux_ave', None)
-            case BoundaryEnums.FLOW_SPEC.MASS_FLUX:
-                data.pop('mass_flow', None)
-                data.pop('mass_flux_ave', None)
-            case BoundaryEnums.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
-                data.pop('mass_flow', None)
-
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('pressure-inlet')
-class PressureInlet:
+class PressureInlet(ToDictMixin):
     name: str
     id_: str
 
@@ -508,16 +529,6 @@ class PressureInlet:
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_turbulence(data, turb_model)
-        _filter_direction_spec(data)
-        _filter_radiation(data, rad_model)
-
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('intake-fan')
@@ -546,7 +557,7 @@ class PressureFarField:
 
 @dataclass
 @BoundaryFactory.register('pressure-outlet')
-class PressureOutlet:
+class PressureOutlet(ToDictMixin):
     name: str
     id_: str
 
@@ -583,29 +594,10 @@ class PressureOutlet:
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-
-        if self.prevent_reverse_flow == '#t':
-            for key in (
-                'frame_of_reference', 'direction_spec', 'p_backflow_spec_gen',
-                'ke_spec', 'turb_intensity', 'turb_length_scale', 'turb_hydraulic_diam', 'turb_viscosity_ratio',
-                't0',
-            ):
-                data.pop(key, None)
-        else:
-            _filter_turbulence(data, turb_model)
-            _filter_direction_spec(data)
-
-        _filter_radiation(data, rad_model)
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('mass-flow-outlet')
-class MassFlowOutlet:
+class MassFlowOutlet(ToDictMixin):
     name: str
     id_: str
 
@@ -626,29 +618,10 @@ class MassFlowOutlet:
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_turbulence(data, turb_model)
-        _filter_radiation(data, rad_model)
-
-        match data['flow_spec']:
-            case BoundaryEnums.FLOW_SPEC.MASS_FLOW_RATE:
-                data.pop('mass_flux', None)
-                data.pop('mass_flux_ave', None)
-            case BoundaryEnums.FLOW_SPEC.MASS_FLUX:
-                data.pop('mass_flow', None)
-                data.pop('mass_flux_ave', None)
-            case BoundaryEnums.FLOW_SPEC.MASS_FLUX_WITH_AVERAGE_MASS_FLUX:
-                data.pop('mass_flow', None)
-
-        return _group_by_category(self, data)
-
 
 @dataclass
 @BoundaryFactory.register('outflow')
-class Outflow:
+class Outflow(ToDictMixin):
     name: str
     id_: str
 
@@ -658,14 +631,6 @@ class Outflow:
     in_emiss: str = grouped('radiation')
     t_b_b_spec: str = grouped('radiation')
     t_b_b: str = grouped('radiation')
-
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-        _filter_radiation(data, rad_model)
-
-        return _group_by_category(self, data)
 
 
 @dataclass
@@ -689,7 +654,7 @@ class OutletVent:
 
 @dataclass
 @BoundaryFactory.register('wall')
-class Wall:
+class Wall(ToDictMixin):
     name: str
     id_: str
 
@@ -720,49 +685,6 @@ class Wall:
     in_emiss: str = grouped('radiation')
     band_diffuse_frac: str = grouped('radiation')
 
-    def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
-        data = self.__dict__.copy()
-
-        _map_consts(data)
-
-        match data['thermal_bc']:
-            case BoundaryEnums.THERMAL_BC.TEMPERATURE:
-                for key in ['q', 'h', 'tinf', 'ex_emiss', 'trad']:
-                    data.pop(key, None)
-            case BoundaryEnums.THERMAL_BC.HEAT_FLUX:
-                for key in ['t', 'h', 'tinf', 'ex_emiss', 'trad']:
-                    data.pop(key, None)
-            case BoundaryEnums.THERMAL_BC.CONVECTION:
-                for key in ['q', 't', 'ex_emiss', 'trad']:
-                    data.pop(key, None)
-            case BoundaryEnums.THERMAL_BC.COUPLED | BoundaryEnums.THERMAL_BC.VIA_SYSTEM_COUPLING:
-                for key in ['q', 't', 'h', 'tinf', 'ex_emiss', 'trad']:
-                    data.pop(key, None)
-            case BoundaryEnums.THERMAL_BC.RADIATION:
-                for key in ['q', 't', 'h', 'tinf']:
-                    data.pop(key, None)
-            case BoundaryEnums.THERMAL_BC.MIXED:
-                for key in ['q', 't']:
-                    data.pop(key, None)
-
-        if data['planar_conduction'] == '#f':
-            data.pop('shell_conduction', None)
-
-        if turb_model in ['inviscid', 'lam']:
-            data.pop('rough_bc', None)
-            data.pop('roughness_height', None)
-            data.pop('roughness_const', None)
-
-        if rad_model not in (None, 'off'):
-            match data['radiation_bc']:
-                case BoundaryEnums.RADIATION_BC.SEMI_TRANSPARENT:
-                    data.pop('in_emiss', None)
-        else:
-            data.pop('radiation_bc', None)
-            data.pop('in_emiss', None)
-            data.pop('band_diffuse_frac', None)
-
-        return _group_by_category(self, data)
 
 # endregion Wall
 
