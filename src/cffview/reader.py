@@ -340,8 +340,8 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
                 match property_list:
                     case [_, expr] | [_, '.', expr] if isinstance(expr, str):
                         value = expr
-                    case [_, x, y, z] if all(isinstance(i, str) for i in (x, y, z)):
-                        value = f'{x} {y} {z}'
+                    case [_, *components] if all(isinstance(i, str) for i in components):
+                        value = ' '.join(components)
                     case [_, [sel, '.', expr], *_]:
                         value = f'{sel}/{expr}'
                     case [_, ['profile', sel, expr], *_]:

@@ -113,6 +113,13 @@ class BoundaryEnums:
         SPECIFIED_EXTERNAL_TEMPERATURE = ('1', 'Specified External Temperature')
     # endregion radiation
 
+    # region porous zone
+    class DIR_SPEC_COND(_CodeEnum):
+        CARTESIAN = ('0', 'Cartesian')
+        CONICAL = ('1', 'Conical')
+        CURVILINEAR_COORDINATE_SYSTEM = ('2', 'Curvilinear Coordinate System')
+    # endregion porous zone
+
     @classmethod
     def __class_getitem__(cls, key: str):
         return getattr(cls, key.upper(), None)
@@ -272,12 +279,53 @@ class Fluid:
     ak: str = grouped('reference-frame')
     axis_direction_component: str = grouped('reference-frame')
 
+    dir_spec_cond: str = grouped('porous-zone')
+    direction_1_x: str = grouped('porous-zone')
+    direction_1_y: str = grouped('porous-zone')
+    direction_1_z: str = grouped('porous-zone')
+    direction_1_components: str = grouped('porous-zone')
+    direction_2_x: str = grouped('porous-zone')
+    direction_2_y: str = grouped('porous-zone')
+    direction_2_z: str = grouped('porous-zone')
+    direction_2_components: str = grouped('porous-zone')
+    rel_vel_resistance: str = grouped('porous-zone')
+    porous_r_1: str = grouped('porous-zone')
+    porous_r_2: str = grouped('porous-zone')
+    porous_r_3: str = grouped('porous-zone')
+    viscous_resistance_components: str = grouped('porous-zone')
+    alt_inertial_form: str = grouped('porous-zone')
+    porous_c_1: str = grouped('porous-zone')
+    porous_c_2: str = grouped('porous-zone')
+    porous_c_3: str = grouped('porous-zone')
+    inertial_resistance_components: str = grouped('porous-zone')
+    c0: str = grouped('porous-zone')
+    c1: str = grouped('porous-zone')
+    power_law_model_constants: str = grouped('porous-zone')
+    porosity: str = grouped('porous-zone')
+    viscosity_ratio: str = grouped('porous-zone')
+
     def to_dict(self, turb_model: str, rad_model: str) -> dict[str, str]:
         data = self.__dict__.copy()
 
+        _map_consts(data)
         _filter_sources(data)
+
         if rad_model == 'off':
             data.pop('radiating', None)
+
+        if data['porous'] == '#f':
+            for f in fields(self):
+                if f.metadata.get('group') == 'porous-zone':
+                    data.pop(f.name, None)
+        else:
+            match data['dir_spec_cond']:
+                # TODO
+                case BoundaryEnums.DIR_SPEC_COND.CARTESIAN:
+                    ...
+                case BoundaryEnums.DIR_SPEC_COND.CONICAL:
+                    ...
+                case BoundaryEnums.DIR_SPEC_COND.CURVILINEAR_COORDINATE_SYSTEM:
+                    ...
 
         return _group_by_category(self, data)
 
