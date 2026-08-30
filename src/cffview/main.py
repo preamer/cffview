@@ -37,12 +37,13 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
     ARGUMENTS = [
         (("--version",), "show the version of the .h5 file"),
         (("--extract",), "extract cas.h5 general and boundary string to files"),
-        (("--mesh", "--showmesh",), "show mesh using pyvista"),
-        (("--data", "--plotdata",), "plot data using pyvista"),
+        (("--plotmesh",), "show mesh using pyvista"),
+        (("--plotdata",), "plot data using pyvista"),
         (("--solver",), "show solver settings"),
         (("--mat", "--materials"), "show materials settings"),
         (("--bd", "--boundary"), "show boundary settings"),
         (("--interfaces",), "show mesh interfaces settings"),
+        (("--mesh",), "show mesh settings"),
         (("--ne", "--named-expressions"), "show named-expressions settings"),
         (("--cff", "--custom-field-functions"), "show custom field functions"),
         (("--solution",), "show solution methods and controls settings"),
@@ -55,6 +56,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--contours",), "show graphics contours settings"),
         (("--vectors",), "show graphics vectors settings"),
         (("--pathlines",), "show graphics pathlines settings"),
+        (("--scene",), "show scene settings"),
         (("--xy-plot",), "show graphics xy-plot settings"),
     ]
     for flags, help_text in ARGUMENTS:
@@ -105,10 +107,10 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         from .plotter import show_mesh
         show_mesh(args.file_path)
     elif args.file_path.endswith(".cas.h5"):
-        if args.mesh:
+        if args.plotmesh:
             from .plotter import show_mesh
             show_mesh(args.file_path)
-        elif args.data:
+        elif args.plotdata:
             from .plotter import plot_data
             plot_data(args.file_path)
         else:

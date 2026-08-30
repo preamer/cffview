@@ -10,8 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `--pathlines` for showing graphics pathlines settings.
+- `--mesh` and `--scene` for showing graphics mesh / scene settings.
 - `iso-surface` and `iso-clip-new` surface types to the `--surfaces` output.
 - `Time Scale Factor` to the `--solution` output when the Coupled scheme's pseudo time method is enabled.
+- `edge-type`, `coloring` and `graphics-objects` to the graphics settings output.
+
+### Changed
+
+- Visualisation flags renamed: `--mesh`/`--showmesh` -> `--plotmesh`, `--data` -> `--plotdata`.
 
 ### Fixed
 

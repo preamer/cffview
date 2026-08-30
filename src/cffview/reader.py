@@ -9,7 +9,7 @@ requested readers and merges their results.
 import re
 from typing import Any, Callable
 from collections import namedtuple
-from functools import lru_cache, singledispatch
+from functools import lru_cache, singledispatch, partial
 
 import sexpdata
 
@@ -792,100 +792,48 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
 # ---------------------------------------------------------- graphics items
 
 
-@register_reader('contours')
-def _read_contours(texts: CaseTexts) -> dict[str, Any]:
+def _read_graphics(texts: CaseTexts, graphics_type: str) -> dict[str, Any]:
     general = texts.general
-    contours = re.search(r'(\(graphics/contours.*)', general, re.M).group(1)
-    contours_list = stringify_nested_list(sexpdata.loads(contours, true=None)[1])
+    graphics_type = 'xy-plot' if graphics_type == 'xy_plot' else graphics_type
+    graphics_item = re.search(rf'(\(graphics/{graphics_type}\s.*)', general, re.M).group(1)
+    item_list = stringify_nested_list(sexpdata.loads(graphics_item, true=None)[1])
 
     data: dict[str, Any] = {}
-    for contour in contours_list:
-        name = contour[0][2]
+    for item in item_list:
+        name = item[0][2]
         data[name] = {}
-        for contour_property in contour[1:]:
-            match contour_property:
+        for item_property in item[1:]:
+            match item_property:
                 case [property_name, '.', value]:
                     data[name][property_name] = value
                 case ['surfaces-list', *surfaces_list]:
                     data[name]['surfaces-list'] = surfaces_list
-                case [property_name, *values] if property_name in ('range-options', 'color-map'):
+                case ['edge-type', edge_type, '.', _]:
+                    data[name]['edge-type'] = edge_type
+                case ['coloring', coloring, coloring_option, '.', _]:
+                    data[name]['coloring'] = {
+                        'type': coloring,
+                        'option': coloring_option,
+                    }
+                case ['graphics-objects', *graphics_objects_list]:
+                    graphics_objects = [
+                        {object_property[0]: object_property[2] for object_property in graphics_object}
+                        for graphics_object in graphics_objects_list
+                    ]
+                    data[name]['graphics-objects'] = graphics_objects
+                case [property_name, *values] if property_name in (
+                    'options', 'range-options', 'scale', 'vector-opt',
+                    'color-map', 'log-scale', 'auto-scale', 'labels'
+                ):
                     data[name][property_name] = {value[0]: value[2] for value in values}
                 case _:
                     continue
 
-    return {'contours': data}
+    return {graphics_type: data}
 
 
-@register_reader('vectors')
-def _read_vectors(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    vectors = re.search(r'(\(graphics/vectors\s.*)', general, re.M).group(1)
-    vectors_list = stringify_nested_list(sexpdata.loads(vectors, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for vector in vectors_list:
-        name = vector[0][2]
-        data[name] = {}
-        for vector_property in vector[1:]:
-            match vector_property:
-                case [property_name, '.', value]:
-                    data[name][property_name] = value
-                case ['surfaces-list', *surfaces_list]:
-                    data[name]['surfaces-list'] = surfaces_list
-                case [property_name, *values] if property_name in ('range-options', 'scale', 'vector-opt', 'color-map'):
-                    data[name][property_name] = {value[0]: value[2] for value in values}
-                case _:
-                    continue
-
-    return {'vectors': data}
-
-
-@register_reader('pathlines')
-def _read_pathlines(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    pathlines = re.search(r'(\(graphics/pathlines\s.*)', general, re.M).group(1)
-    pathlines_list = stringify_nested_list(sexpdata.loads(pathlines, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for pathline in pathlines_list:
-        name = pathline[0][2]
-        data[name] = {}
-        for pathline_property in pathline[1:]:
-            match pathline_property:
-                case [property_name, '.', value]:
-                    data[name][property_name] = value
-                case ['surfaces-list', *surfaces_list]:
-                    data[name]['surfaces-list'] = surfaces_list
-                case [property_name, *values] if property_name in ('range-options', 'options', 'color-map', 'log-scale', 'auto-scale', 'labels'):
-                    data[name][property_name] = {value[0]: value[2] for value in values}
-                case _:
-                    continue
-
-    return {'pathlines': data}
-
-
-@register_reader('xy_plot')
-def _read_xy_plot(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    xy_plots = re.search(r'(\(graphics/xy-plot.*)', general, re.M).group(1)
-    xy_plots_list = stringify_nested_list(sexpdata.loads(xy_plots, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for xy_plot in xy_plots_list:
-        name = xy_plot[0][2]
-        data[name] = {}
-        for xy_plot_property in xy_plot[1:]:
-            match xy_plot_property:
-                case [property_name, '.', value]:
-                    data[name][property_name] = value
-                case ['surfaces-list', *surfaces_list]:
-                    data[name]['surfaces-list'] = surfaces_list
-                case [property_name, *values] if property_name == 'options':
-                    data[name][property_name] = {value[0]: value[2] for value in values}
-                case _:
-                    continue
-
-    return {'xy-plot': data}
+for g_type in ('mesh', 'contours', 'vectors', 'pathlines', 'xy_plot', 'scene'):
+    register_reader(g_type)(partial(_read_graphics, graphics_type=g_type))
 
 
 # ------------------------------------------------------------- dispatcher

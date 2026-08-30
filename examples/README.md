@@ -30,6 +30,8 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 | `contours.scm` | `(graphics/contours ...)` inside Rampant Variables | `--contours` | Graphics contour definitions |
 | `vectors.scm` | `(graphics/vectors ...)` inside Rampant Variables | `--vectors` | Graphics vector definitions |
 | `pathlines.scm` | `(graphics/pathlines ...)` inside Rampant Variables | `--pathlines` | Graphics pathline definitions |
+| `mesh.scm` | `(graphics/mesh ...)` inside Rampant Variables | `--mesh` | Graphics mesh display definitions |
+| `scene.scm` | `(graphics/scene ...)` inside Rampant Variables | `--scene` | Graphics scene definitions |
 | `xy-plot.scm` | `(graphics/xy-plot ...)` inside Rampant Variables | `--xy-plot` | Graphics XY-plot definitions |
 | `cortex.scm` | `/settings/Cortex Variables` | `--surfaces`, `--cff`, `--units` | GUI state: reference frames, scenes, surfaces, cell functions, unit table |
 | `surfaces.scm` | `(surfaces/groups ...)` inside Cortex Variables | `--surfaces` | User-defined surface groups and definitions |

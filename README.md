@@ -44,9 +44,9 @@ cffview <file> [options]
 |---|---|
 | `--version` | Print the Fluent version of file |
 | `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
-| `--mesh`, `--showmesh` | Visualise the mesh interactively with PyVista |
-| `--data`, `--plotdata` | Plot the data interactively with PyVista (may not work, depending on `vtkFLUENTCFFReader`) |
-| `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity |
+| `--plotmesh` | Visualise the mesh interactively with PyVista |
+| `--plotdata` | Visualise the data interactively with PyVista (may not work, depending on `vtkFLUENTCFFReader`) |
+| `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity, ... |
 | `--mat`, `--materials` | Material properties |
 | `--bd`, `--boundary` | Boundary condition settings |
 | `--interfaces` | Mesh interfaces settings |
@@ -60,10 +60,12 @@ cffview <file> [options]
 | `--residuals` | Residual settings |
 | `--iter` | Iteration / time-step settings |
 | `--surfaces` | Surfaces settings |
+| `--mesh` | Graphics mesh settings |
 | `--contours` | Graphics contours settings |
 | `--vectors` | Graphics vectors settings |
 | `--pathlines` | Graphics pathlines settings |
 | `--xy-plot` | Graphics xy-plot settings |
+| `--scene` | Graphics scene settings |
 | `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
 | `--plot [out\|xy\|dat]` | Plot a data file; without `TYPE`, infer from the file extension |
 
@@ -85,11 +87,11 @@ cffview case.cas.h5 --save
 cffview case.cas.h5 --solver --bd
 
 # Visualise the mesh
-cffview case.cas.h5 --mesh
+cffview case.cas.h5 --plotmesh
 cffview mesh.msh.h5
 
 # Visualise the data
-cffview case.cas.h5 --data
+cffview case.cas.h5 --plotdata
 
 # Check the Fluent version of file
 cffview case.cas.h5 --version
