@@ -328,7 +328,7 @@ class DataPlotter(BasePlotter):
         return clip_plane_cb
 
 
-def show_mesh(file_path: str) -> None:
+def plot_mesh(file_path: str) -> None:
     """Show mesh with PyVista
 
     Parameters

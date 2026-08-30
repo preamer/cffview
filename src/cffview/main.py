@@ -104,12 +104,12 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
             dat=args.plot == 'dat',
         )
     elif args.file_path.endswith(".msh.h5"):
-        from .plotter import show_mesh
-        show_mesh(args.file_path)
+        from .plotter import plot_mesh
+        plot_mesh(args.file_path)
     elif args.file_path.endswith(".cas.h5"):
         if args.plotmesh:
-            from .plotter import show_mesh
-            show_mesh(args.file_path)
+            from .plotter import plot_mesh
+            plot_mesh(args.file_path)
         elif args.plotdata:
             from .plotter import plot_data
             plot_data(args.file_path)
