@@ -1,4 +1,4 @@
-(graphics/vectors 
+(graphics/vectors
     (
         (
             (name . "vector-1")
@@ -8,7 +8,7 @@
             (location-ids)
             (locations (physics) (geometry) (surfaces))
             (range-option auto-range-on (global-range? . #t))
-            (range-options 
+            (range-options
                 (global-range? . #f)
                 (auto-range? . #f)
                 (clip-to-range? . #f)
@@ -16,19 +16,19 @@
                 (maximum . 0.)
                 (compute . #f)
             )
-            (options 
+            (options
                 (auto-scale? . #f)
                 (vector-style . "")
                 (scale . 0.)
                 (skip . 0)
             )
-            (scale 
+            (scale
                 (auto-scale? . #t)
                 (scale-f . 0.02)
             )
             (style . "3d arrow")
             (skip . 3)
-            (vector-opt 
+            (vector-opt
                 (in-plane? . #f)
                 (fixed-length? . #t)
                 (x-comp? . #t)
@@ -38,7 +38,7 @@
                 (tessellation . 24)
                 (color . "")
             )
-            (color-map 
+            (color-map
                 (visible? . #t)
                 (color . "field-velocity")
                 (size . 100)
