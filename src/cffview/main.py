@@ -8,7 +8,26 @@ dispatches to :mod:`cffview.extract` (version / raw Scheme export),
 the CLI together; the actual work lives in the feature modules.
 """
 
+import glob
 import argparse
+
+
+def _expand_path(file_path: str) -> str:
+    """Resolve a glob pattern to the first matching file (or the path as-is).
+
+    Parameters
+    ----------
+    file_path : str
+        Path or glob pattern (e.g. ``*.cas.h5``).
+
+    Returns
+    -------
+    str
+        The first matching path when ``file_path`` is a pattern with
+        matches; otherwise ``file_path`` unchanged.
+    """
+    matches = sorted(glob.glob(file_path))
+    return matches[0] if matches else file_path
 
 
 def main() -> None:
@@ -85,6 +104,8 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
     )
 
     args = parser.parse_args()
+
+    args.file_path = _expand_path(args.file_path)
 
     if not args.file_path.endswith((".cas.h5", ".msh.h5")) and args.plot is False:
         parser.error("Invalid arguments, please provide a .cas.h5 or .msh.h5 file or add --plot argument to plot file")
