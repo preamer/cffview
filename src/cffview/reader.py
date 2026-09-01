@@ -60,12 +60,14 @@ DISCRETIZATION_SCHEME = {
     "31": "Low Diffusion Central",
 }
 
-TURB_MODEL_KEYS = [
+TURB_MODEL_KEYS = (
     'rp-lam?', 'rp-ke?', 'rp-kw?', 'rp-sa?', 'sg-rsm?',
     'rp-les?', 'rp-des?', 'rp-kklw', 'rp-v2f?',
-]
+)
+type TurbModel = Literal['lam', 'ke', 'kw', 'sa', 'rsm', 'les', 'des', 'kklw', 'v2f']
 
-RADIATION_MODEL_KEYS = ['sg-rosseland?', 'sg-p1?', 'sg-dtrm?', 'sg-s2s?', 'sg-disco?']
+RADIATION_MODEL_KEYS = ('sg-rosseland?', 'sg-p1?', 'sg-dtrm?', 'sg-s2s?', 'sg-disco?')
+type RadiationModel = Literal['rosseland', 'p1', 'dtrm', 's2s', 'disco']
 
 
 # ------------------------------------------------------------ shared helpers
@@ -104,7 +106,7 @@ def _parse_case_config(general: str) -> dict[str, str]:
 
 
 @lru_cache()
-def _get_turb_model(general: str) -> str | None:
+def _get_turb_model(general: str) -> TurbModel | None:
     """Return the turbulence model name (``ke``, ``kw``, ...), or None if unknown."""
     kvs = _parse_case_config(general)
     if kvs['rp-visc?'] == '#f':
@@ -122,7 +124,7 @@ def _get_solver_time(general: str) -> Literal['steady', 'transient']:
 
 
 @lru_cache()
-def _get_radiation_model(general: str) -> str:
+def _get_radiation_model(general: str) -> RadiationModel | Literal['off']:
     """Return the radiation model name (``p1``, ``s2s``, ...), or ``'off'`` if none."""
     kvs = _parse_case_config(general)
     for key in RADIATION_MODEL_KEYS:
@@ -132,10 +134,15 @@ def _get_radiation_model(general: str) -> str:
 
 
 @lru_cache()
-def _get_multi_phase_model(general: str) -> str:
+def _get_multi_phase_model(general: str) -> Literal['off', 'vof', 'mixture', 'eulerian', 'wetsteam']:
     """Return ``'#f'`` or multi-phase model(vof, drift-flux(mixture), multi-fluid(eulerian))."""
     if (mphase_model := _parse_case_config(general)['sg-mphase?']) != '#f':
-        return mphase_model
+        mphase_model_map = {
+            'vof': 'vof',
+            'drift-flux': 'mixture',
+            'multi-fluid': 'eulerian',
+        }
+        return mphase_model_map[mphase_model]
     elif _parse_case_config(general)['sg-wetsteam?'] != '#f':
         return 'wetsteam'
     else:
@@ -143,10 +150,10 @@ def _get_multi_phase_model(general: str) -> str:
 
 
 @lru_cache()
-def _get_gravity(general: str, dimension: str) -> dict[str, str] | str:
+def _get_gravity(general: str, dimension: str) -> dict[str, str] | Literal['Off']:
     gravity = re.search(r'\(gravity\?\s+([^)\s]+)\)', general).group(1)
     if gravity != '#t':
-        return 'false'
+        return 'Off'
     axes = ['x', 'y', 'z'] if dimension == '3d' else ['x', 'y']
     return {axis: _sel_expr(general, f'gravity/{axis}') for axis in axes}
 
