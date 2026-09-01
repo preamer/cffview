@@ -7,22 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.0] - 2026-09-01
+
 ### Added
 
 - `--pathlines` for showing graphics pathlines settings.
 - `--mesh` and `--scene` for showing graphics mesh / scene settings.
 - `iso-surface` and `iso-clip-new` surface types to the `--surfaces` output.
 - `Time Scale Factor` to the `--solution` output when the Coupled scheme's pseudo time method is enabled.
-- `edge-type`, `coloring` and `graphics-objects` to the graphics settings output.
 - Full properties for `pressure-far-field` boundary (momentum / thermal / radiation groups).
 - Pseudo time step settings (method, time step / time-scale-factor, length-scale method, verbosity) to the `--iter` output.
 - `reporting-interval`, `update-interval` and `save-steady-statistics` to the `--iter` output.
-- `from` field to `iso-surface` output in `--surfaces`.
 
 ### Changed
 
 - Visualisation flags renamed: `--mesh`/`--showmesh` -> `--plotmesh`, `--data` -> `--plotdata`.
-- Generic polynomial / material property parsing now covers any selector prefix (e.g. `orthotropic`, custom types).
 
 ### Fixed
 
