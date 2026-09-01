@@ -7,8 +7,8 @@ requested readers and merges their results.
 """
 
 import re
-from typing import Any, Callable
 from collections import namedtuple
+from typing import Any, Callable, Literal
 from functools import lru_cache, singledispatch, partial
 
 import sexpdata
@@ -116,7 +116,7 @@ def _get_turb_model(general: str) -> str | None:
 
 
 @lru_cache()
-def _get_solver_time(general: str) -> str:
+def _get_solver_time(general: str) -> Literal['steady', 'transient']:
     """Return ``'transient'`` or ``'steady'``."""
     return 'transient' if _parse_case_config(general)['rp-unsteady?'] == '#t' else 'steady'
 
@@ -175,6 +175,26 @@ def _get_reference_values(general: str) -> dict[str, str]:
         value: re.search(rf'\(reference-{value}\s+([^)\s]+)\)', general).group(1)
         for value in reference_values
     }
+
+
+@lru_cache()
+def _get_flow_scheme(general: str) -> Literal['Coupled', 'SIMPLE', 'SIMPLEC', 'PISO']:
+    return DISCRETIZATION_SCHEME[re.search(r'\(flow/scheme\s+(\d+)\)', general).group(1)]
+
+
+@lru_cache()
+def _get_pesudo_time_method(general: str) -> Literal['Off', 'Global Time Step', 'Local Time Step']:
+    flow_scheme = _get_flow_scheme(general)
+    if flow_scheme == 'Coupled':
+        key = 'pseudo-time-method/coupled-pbns/dt-method'
+    else:
+        key = 'pseudo-time-method/segregated-pbns/dt-method'
+    method_code = re.search(rf'\({key}\s+([\d.]+)\)', general).group(1)
+    return (
+        'Off' if method_code == '0'
+        else 'Global Time Step' if flow_scheme == 'Coupled'
+        else 'Local Time Step'
+    )
 
 
 @singledispatch
@@ -280,8 +300,6 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
                     data[name][property_name] = {
                         f'polynomial/{polynomial_type}': [str(v).strip('[]') for v in values_list]
                     }
-                case [['polynomial', *values_list], *_]:
-                    data[name][property_name] = {f'polynomial': [str(v).strip('[]') for v in values_list]}
                 case [['orthotropic', *orth_properties], *_]:
                     value = {}
                     for orth_property in orth_properties:
@@ -291,6 +309,8 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
                         elif orth_property_name in ('k0', 'k1', 'k2'):
                             value[orth_property_name] = _sel_expr(orth_property[1])
                     data[name][property_name] = value
+                case [[sel, *values_list], *_]:
+                    data[name][property_name] = {sel: [str(v).strip('[]') for v in values_list]}
                 case _:
                     value = ' '.join(str(p) for p in property_[1:])
                     data[name][property_name] = f'{property_[0]}/{value}'
@@ -483,17 +503,7 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
         flux_index = re.search(r'\(pbs/flux-index\s+([\d.]+)\)', general).group(1)
         data['solution-methods']['Flux Type'] = 'Rhie-Chow: distance based' if flux_index == '0' else 'Rhie-Chow: momentum based'
 
-    flow_scheme = data['solution-methods']['flow']
-    if flow_scheme == 'Coupled':
-        key = 'pseudo-time-method/coupled-pbns/dt-method'
-    else:
-        key = 'pseudo-time-method/segregated-pbns/dt-method'
-    method_code = re.search(rf'\({key}\s+([\d.]+)\)', general).group(1)
-    data['solution-methods']['Pseudo Time Method'] = (
-        'Off' if method_code == '0'
-        else 'Global Time Step' if flow_scheme == 'Coupled'
-        else 'Local Time Step'
-    )
+    data['solution-methods']['Pseudo Time Method'] = _get_pesudo_time_method(general)
 
     cell_lsf = re.search(r'\(recon/cell-lsf\?\s+([^)]+)\)', general).group(1)
     data['solution-methods']['Wraped-Face Gradient Correction'] = 'On' if cell_lsf == '#t' else 'Off'
@@ -508,6 +518,7 @@ def _read_solution(texts: CaseTexts) -> dict[str, Any]:
         values['Relaxation Factor'] = re.search(r'\(recon/relax/steady-urf\s+([\d.]+)\)', general).group(1)
         data['solution-methods']['High Order Term Relaxation'] = values
 
+    flow_scheme = data['solution-methods']['flow']
     if flow_scheme == 'Coupled':
         if data['solution-methods']['Pseudo Time Method'] != 'Off':
             data['solution-methods']['Time Scale Factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
@@ -709,11 +720,36 @@ def _read_iter(texts: CaseTexts) -> dict[str, Any]:
     data: dict[str, Any] = {}
 
     if _get_solver_time(general) == 'steady':
+        pseudo_time_method = _get_pesudo_time_method(general)
+        if pseudo_time_method != 'Off':
+            data['time-step-method'] = 'Automatic' if re.search(
+                r'\(pseudo-auto-time-step\?\s+(#[tf])\)', general
+            ).group(1) == '#t' else 'User-Specified'
+            if data['time-step-method'] == 'User-Specified':
+                data['pseudo-time-step'] = _sel_expr(general, 'pseudo-time-step')
+            else:
+                data['time-scale-factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
+                length_scale_method = re.search(r'\(pseudo/autotime-lscale-option\s+(\d+)\)', general).group(1)
+                data['length-scale-method'] = (
+                    'Aggressive' if length_scale_method == '0' else
+                    'Conservative' if length_scale_method == '1' else
+                    'User-Specified'
+                )
+                if data['length-scale-method'] == 'User-Specified':
+                    data['length-scale'] = re.search(
+                        r'\(pseudo/autotime-lscale-userspec\s+([\d.]+)\)', general
+                    ).group(1)
+            data['verbosity'] = re.search(r'\(pseudo-auto-time-verbosity\s+(\d+)\)', general).group(1)
+
         data['iterations'] = re.search(r'\(number-of-iterations\s+(\d+)\)', general).group(1)
+        data['reporting-interval'] = re.search(r'\(iteration-chunk\s+(\d+)\)', general).group(1)
+        data['update-interval'] = re.search(r'\(profile/update-interval\s+(\d+)\)', general).group(1)
+        data['save-steady-statistics'] = re.search(r'\(save-steady-statistics\?\s+(#[tf])\)', general).group(1)
     else:
         data['physical-time-step'] = _sel_expr(general, 'physical-time-step')
         for key in ['time-steps', 'max-iters-per-step', 'time-step', 'flow-time']:
             data[key] = re.search(rf'\({key}\s+(\d+)\)', general).group(1)
+
     return {'iter': data}
 
 
@@ -769,9 +805,10 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
                         'reference point': ref_point,
                     }
                 }
-            case ['iso-surface', virtual_id, _, reference, [iso_values]]:
+            case ['iso-surface', virtual_id, from_surface_or_zone, reference, [iso_values]]:
                 data[virtual_id_name_map[virtual_id]] = {
                     'type': 'iso-surface',
+                    'from': [virtual_id_name_map[vid] for vid in from_surface_or_zone],
                     'reference': reference,
                     'iso-values': iso_values,
                 }

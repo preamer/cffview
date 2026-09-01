@@ -226,14 +226,14 @@ class ToDictMixin:
 
     def _filter_direction_spec(self, data: dict[str, str]) -> None:
         """Filter direction_spec and corresponding coordinate_system."""
-        if data.get('direction_spec') != BoundaryEnums.DIRECTION_SPEC.DIRECTION_VECTOR:
-            for key in ('ni', 'nj', 'nk', 'u', 'v', 'w', 'coordinate_system'):
+        if data.get('direction_spec') != BoundaryEnums.DIRECTION_SPEC.DIRECTION_VECTOR and not isinstance(self, PressureFarField | Fluid | Solid):
+            for key in ('ni', 'nj', 'nk', 'ai', 'aj', 'ak', 'u', 'v', 'w', 'coordinate_system'):
                 data.pop(key, None)
         else:
             match data.get('coordinate_system'):
                 # TODO
                 case BoundaryEnums.COORDINATE_SYSTEM.CARTESIAN:
-                    for key in ('ni', 'nj', 'nk'):
+                    for key in ('ai', 'aj', 'ak', 'axis_direction_component'):
                         data.pop(key, None)
                 case BoundaryEnums.COORDINATE_SYSTEM.CYLINDRICAL:
                     for key in ('u', 'v', 'w'):
@@ -531,6 +531,38 @@ class PressureInlet(ToDictMixin):
 
 
 @dataclass
+@BoundaryFactory.register('pressure-far-field')
+class PressureFarField(ToDictMixin):
+    name: str
+    id_: str
+
+    p: str = grouped('momentum')
+    m: str = grouped('momentum')
+    coordinate_system: str = grouped('momentum')
+    ni: str = grouped('momentum')
+    nj: str = grouped('momentum')
+    nk: str = grouped('momentum')
+    flow_direction_component: str = grouped('momentum')
+    ai: str = grouped('momentum')
+    aj: str = grouped('momentum')
+    ak: str = grouped('momentum')
+    axis_direction_component: str = grouped('momentum')
+
+    ke_spec: str = grouped('momentum')
+    turb_intensity: str = grouped('momentum')
+    turb_length_scale: str = grouped('momentum')
+    turb_hydraulic_diam: str = grouped('momentum')
+    turb_viscosity_ratio: str = grouped('momentum')
+
+    t: str = grouped('thermal')
+
+    radiation_bc: str = grouped('radiation')
+    in_emiss: str = grouped('radiation')
+    t_b_b_spec: str = grouped('radiation')
+    t_b_b: str = grouped('radiation')
+
+
+@dataclass
 @BoundaryFactory.register('intake-fan')
 class IntakeFan:
     name: str
@@ -540,13 +572,6 @@ class IntakeFan:
 @dataclass
 @BoundaryFactory.register('inlet-vent')
 class InletVent:
-    name: str
-    id_: str
-
-
-@dataclass
-@BoundaryFactory.register('pressure-far-field')
-class PressureFarField:
     name: str
     id_: str
 
