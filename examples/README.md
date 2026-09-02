@@ -28,6 +28,7 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 | `monitorsets.scm` | `(monitor/monitorsets ...)` inside Rampant Variables | `--monitorsets` | Monitor sets |
 | `plotsets.scm` | `(monitor/plotsets ...)` inside Rampant Variables | `--plotsets` | Plot sets |
 | `convergencesets.scm` | `(monitor/convergencesets ...)` inside Rampant Variables | `--convergencesets` | Convergence sets |
+| `cell-registers.scm` | `(cell-registers ...)` inside Rampant Variables | `--cell` | Cell registers settings |
 | `contours.scm` | `(graphics/contours ...)` inside Rampant Variables | `--contours` | Graphics contour definitions |
 | `vectors.scm` | `(graphics/vectors ...)` inside Rampant Variables | `--vectors` | Graphics vector definitions |
 | `pathlines.scm` | `(graphics/pathlines ...)` inside Rampant Variables | `--pathlines` | Graphics pathline definitions |

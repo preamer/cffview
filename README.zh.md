@@ -53,6 +53,7 @@ cffview <文件> [选项]
 | `--monitorsets` | 监控集配置 |
 | `--plotsets` | 图表集配置 |
 | `--convergencesets` | 收敛判据设置 |
+| `--cell`, `--cell-registers` | 单元寄存器设置 |
 | `--iter` | 迭代步数 / 时间步设置 |
 | `--surfaces` | 面、线、等值面等设置 |
 | `--mesh` | 后处理网格配置 |

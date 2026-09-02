@@ -1,0 +1,30 @@
+(cell-registers
+    (
+        (
+            (name . "curvature_0")
+            (python-name . "curvature_0")
+            (type field-value
+                (field . "density")
+                (option more-than . 0.0015)
+                (min . 0)
+                (max . 0)
+                (average . 0)
+                (std-dev . 0)
+                (compute . #f)
+                (scaling none . #t)
+                (derivative curvature . #t)
+                (size-ratio . 0.)
+                (create-volume-surface . #f)
+            )
+            (display-options
+                (draw-mesh? . #f)
+                (filled? . #f)
+                (marker? . #t)
+                (marker-symbol . "o")
+                (marker-size . 0.1)
+                (wireframe? . #t)
+                (color . "black")
+            )
+        )
+    )
+)

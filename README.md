@@ -59,6 +59,7 @@ cffview <file> [options]
 | `--monitorsets` | Monitor sets |
 | `--plotsets` | Plot sets |
 | `--convergencesets` | Convergence sets |
+| `--cell`, `--cell-registers` | Cell registers settings |
 | `--iter` | Iteration / time-step settings |
 | `--surfaces` | Surfaces settings |
 | `--mesh` | Graphics mesh settings |

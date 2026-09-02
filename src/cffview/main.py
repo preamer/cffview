@@ -71,6 +71,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--monitorsets",), "show report-definitions monitorsets settings"),
         (("--plotsets",), "show report-definitions plotsets settings"),
         (("--convergencesets",), "show convergencesets settings"),
+        (("--cell", "--cell-registers"), "show cell-registers settings"),
         (("--iter",), "show iteration settings"),
         (("--surfaces",), "show surfaces settings"),
         (("--contours",), "show graphics contours settings"),

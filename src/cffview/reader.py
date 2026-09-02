@@ -673,7 +673,7 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
     return {'residuals': data}
 
 
-# ------------------------------------------------------------- convergence/plot/monitor
+# --------------------------------------------------- convergence/plot/monitor
 
 
 @register_reader('monitorsets')
@@ -739,6 +739,35 @@ def _read_convergence(texts: CaseTexts) -> dict[str, Any]:
                     }
 
     return {'convergencesets': data}
+
+
+# ---------------------------------------------------------- cell registers
+
+
+@register_reader('cell')
+def _read_cell_registers(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    cell_registers = re.search(r'(\(cell-registers.*)', general, re.M).group(1)
+    cell_registers_list = stringify_nested_list(sexpdata.loads(cell_registers, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for cell_register in cell_registers_list:
+        name = cell_register[0][2]
+        data[name] = {}
+        for cell_register_property in cell_register[1:]:
+            match cell_register_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case ['type', type_, *kvs]:
+                    data[name]['options'] = {'type': type_}
+                    data[name]['options'].update({
+                        kv[0]: (kv[2] if kv[1] == '.' else f'{kv[1]}/{kv[3]}')
+                        for kv in kvs
+                    })
+                case ['display-options', *options]:
+                    data[name]['display-options'] = {option[0]: option[2] for option in options if option[1] == '.'}
+
+    return {'cell-registers': data}
 
 
 # -------------------------------------------------------------- iteration
