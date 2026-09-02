@@ -638,51 +638,6 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
     return {'report-definitions': data}
 
 
-# ------------------------------------------------------------- plot/monitor
-
-
-@register_reader('plotsets')
-def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    plotsets = re.search(r'(\(monitor/plotsets.*)', general, re.M).group(1)
-    plotsets_list = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for plotset in plotsets_list:
-        name = plotset[0][2]
-        data[name] = {}
-        for plotset_property in plotset[1:]:
-            match plotset_property:
-                case [prop_name, '.', value]:
-                    data[name][prop_name] = value
-                case [prop_name, *values] if prop_name not in ('old-props'):
-                    data[name][prop_name] = values
-                case _:
-                    continue
-    return {'plotsets': data}
-
-
-@register_reader('monitorsets')
-def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
-    general = texts.general
-    monitorsets = re.search(r'(\(monitor/monitorsets.*)', general, re.M).group(1)
-    monitorsets_list = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
-
-    data: dict[str, Any] = {}
-    for monitorset in monitorsets_list:
-        name = monitorset[0][2]
-        data[name] = {}
-        for monitorset_property in monitorset[1:]:
-            match monitorset_property:
-                case [prop_name, '.', value]:
-                    data[name][prop_name] = value
-                case [prop_name, *values] if prop_name not in ('old-props'):
-                    data[name][prop_name] = values
-                case _:
-                    continue
-    return {'monitorsets': data}
-
-
 # ---------------------------------------------------------------- residuals
 
 
@@ -716,6 +671,74 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
                 'absolute-criteria': eq[4],
             }
     return {'residuals': data}
+
+
+# ------------------------------------------------------------- convergence/plot/monitor
+
+
+@register_reader('monitorsets')
+def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    monitorsets = re.search(r'(\(monitor/monitorsets.*)', general, re.M).group(1)
+    monitorsets_list = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for monitorset in monitorsets_list:
+        name = monitorset[0][2]
+        data[name] = {}
+        for monitorset_property in monitorset[1:]:
+            match monitorset_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case [prop_name, *values] if prop_name not in ('old-props'):
+                    data[name][prop_name] = values
+                case _:
+                    continue
+    return {'monitorsets': data}
+
+
+@register_reader('plotsets')
+def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    plotsets = re.search(r'(\(monitor/plotsets.*)', general, re.M).group(1)
+    plotsets_list = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for plotset in plotsets_list:
+        name = plotset[0][2]
+        data[name] = {}
+        for plotset_property in plotset[1:]:
+            match plotset_property:
+                case [prop_name, '.', value]:
+                    data[name][prop_name] = value
+                case [prop_name, *values] if prop_name not in ('old-props'):
+                    data[name][prop_name] = values
+                case _:
+                    continue
+    return {'plotsets': data}
+
+
+@register_reader('convergencesets')
+def _read_convergence(texts: CaseTexts) -> dict[str, Any]:
+    general = texts.general
+    convergencesets = re.search(r'(\(monitor/convergencesets.*)', general, re.M).group(1)
+    convergencesets_list = stringify_nested_list(sexpdata.loads(convergencesets, true=None)[1])
+
+    data: dict[str, Any] = {}
+    for conv_property in convergencesets_list:
+        match conv_property:
+            case [p, '.', v]:
+                data[p] = v
+            case ['conv-reports', *reports]:
+                data['reports'] = {}
+                for report in reports:
+                    name = report[0][2]
+                    data['reports'][name] = {
+                        p[0]: p[2] for p in report[1:]
+                        if p[0] != 'old-props' and p[1] == '.'
+                    }
+
+    return {'convergencesets': data}
 
 
 # -------------------------------------------------------------- iteration
@@ -865,10 +888,12 @@ def _read_graphics(texts: CaseTexts, graphics_type: str) -> dict[str, Any]:
                         for graphics_object in graphics_objects_list
                     ]
                     data[name]['graphics-objects'] = graphics_objects
-                case [property_name, *values] if property_name in (
-                    'options', 'range-options', 'scale', 'vector-opt',
-                    'color-map', 'log-scale', 'auto-scale', 'labels'
-                ):
+                case ['range-option', auto_range_option, *options]:
+                    data[name]['range-option'] = {
+                        'auto-range': auto_range_option.split('-')[-1],
+                        'options': {option[0]: option[2] for option in options},
+                    }
+                case [property_name, *values] if property_name in ('scale', 'vector-opt', 'color-map', 'log-scale', 'auto-scale', 'labels'):
                     data[name][property_name] = {value[0]: value[2] for value in values}
                 case _:
                     continue

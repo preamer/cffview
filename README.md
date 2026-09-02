@@ -55,9 +55,10 @@ cffview <file> [options]
 | `--units [KEYWORD ...]` | Show changed units (filtered by one or more keywords; empty means default SI units) |
 | `--solution` | Solution methods and controls |
 | `--rd`, `--report-definitions` | Report definitions |
-| `--plotsets` | Plot sets |
-| `--monitorsets` | Monitor sets |
 | `--residuals` | Residual settings |
+| `--monitorsets` | Monitor sets |
+| `--plotsets` | Plot sets |
+| `--convergencesets` | Convergence sets |
 | `--iter` | Iteration / time-step settings |
 | `--surfaces` | Surfaces settings |
 | `--mesh` | Graphics mesh settings |

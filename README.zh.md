@@ -49,9 +49,10 @@ cffview <文件> [选项]
 | `--units [关键字 ...]` | 显示修改过的单位（可按一个或多个关键字过滤；为空表示默认 SI 单位制） |
 | `--solution` | 离散格式、松弛因子等求解设置 |
 | `--rd`, `--report-definitions` | 报告定义 |
-| `--plotsets` | 图表集配置 |
-| `--monitorsets` | 监控集配置 |
 | `--residuals` | 残差设置 |
+| `--monitorsets` | 监控集配置 |
+| `--plotsets` | 图表集配置 |
+| `--convergencesets` | 收敛判据设置 |
 | `--iter` | 迭代步数 / 时间步设置 |
 | `--surfaces` | 面、线、等值面等设置 |
 | `--mesh` | 后处理网格配置 |

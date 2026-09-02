@@ -24,9 +24,10 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 | `sliding-interfaces.scm` | `(sliding-interfaces ...)` inside Rampant Variables | `--interfaces` | Sliding / mesh interfaces |
 | `named-expression.scm` | `(named-expressions ...)` inside Rampant Variables | `--ne` | Named expressions |
 | `monitor-report-definitions.scm` | `(monitor/report-definitions ...)` inside Rampant Variables | `--rd` | Report definitions |
-| `plotsets.scm` | `(monitor/plotsets ...)` inside Rampant Variables | `--plotsets` | Plot sets |
-| `monitorsets.scm` | `(monitor/monitorsets ...)` inside Rampant Variables | `--monitorsets` | Monitor sets |
 | `residuals.scm` | `(residuals ...)` inside Rampant Variables | `--residuals` | Residual settings |
+| `monitorsets.scm` | `(monitor/monitorsets ...)` inside Rampant Variables | `--monitorsets` | Monitor sets |
+| `plotsets.scm` | `(monitor/plotsets ...)` inside Rampant Variables | `--plotsets` | Plot sets |
+| `convergencesets.scm` | `(monitor/convergencesets ...)` inside Rampant Variables | `--convergencesets` | Convergence sets |
 | `contours.scm` | `(graphics/contours ...)` inside Rampant Variables | `--contours` | Graphics contour definitions |
 | `vectors.scm` | `(graphics/vectors ...)` inside Rampant Variables | `--vectors` | Graphics vector definitions |
 | `pathlines.scm` | `(graphics/pathlines ...)` inside Rampant Variables | `--pathlines` | Graphics pathline definitions |
