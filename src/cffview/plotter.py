@@ -6,7 +6,6 @@ variable switching, opacity and clip-plane widgets.
 """
 
 import sys
-from functools import wraps
 
 from pyvista import read, _vtk, Actor, Plotter, MultiBlock, PolyData, UnstructuredGrid, DataSetMapper
 
@@ -50,10 +49,9 @@ class BasePlotter:
 
         self.pl = Plotter()
         self.pl.enable_anti_aliasing()
-        self.pl.add_axes(viewport=(0.8, 0.0, 1.0, 0.2))
+        self.pl.add_camera_orientation_widget().representation.AnchorToLowerRight()
         self.keyboard_shortcuts = KEYBOARD_SHORTCUTS
 
-    @wraps(Plotter.show)
     def show(self, *args, **kwargs) -> None:
         from .utils import print_colored_dict
         print_colored_dict(self.keyboard_shortcuts)
