@@ -87,7 +87,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         nargs="*",
         default=False,
         metavar="KEYWORD",
-        help="show unit table, optionally filtered by one or more keywords",
+        help="show changed units(default SI), optionally filtered by one or more keywords",
     )
     parser.add_argument(
         "--save",

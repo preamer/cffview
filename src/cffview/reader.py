@@ -83,7 +83,7 @@ def stringify_nested_list(lst: list[Any]) -> NestedStrList:
     return result
 
 
-def _read_texts(file_path: str, *, need_boundary: bool = False, need_cortex: bool = False) -> CaseTexts:
+def _read_texts(file_path: str, *, need_boundary: bool = False) -> CaseTexts:
     """Decode the Scheme strings under ``/settings`` of a .cas.h5 file."""
     import h5py
 
@@ -91,7 +91,7 @@ def _read_texts(file_path: str, *, need_boundary: bool = False, need_cortex: boo
         settings: h5py.Group = f['/settings']
         general = settings['Rampant Variables'][0].decode()
         boundary = settings['Thread Variables'][0].decode() if need_boundary else ''
-        cortex = settings['Cortex Variables'][0].decode() if need_cortex else ''
+        cortex = settings['Cortex Variables'][0].decode()
     return CaseTexts(general, boundary, cortex)
 
 
@@ -442,7 +442,7 @@ def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
         return {'custom-field-functions': data}
 
 
-# ---------------------------------------------------------------- unit table
+# ------------------------------------------------------------------- units
 
 
 @register_reader('units')
@@ -889,6 +889,14 @@ def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
 
 
 def _read_graphics(texts: CaseTexts, graphics_type: str) -> dict[str, Any]:
+    cortex = texts.cortex
+    surfaces_groups = re.search(r'(\(surfaces/groups.*)', cortex, re.M).group(1)
+    surfaces_groups_list = stringify_nested_list(sexpdata.loads(surfaces_groups, true=None)[1])
+    id_name_map = {
+        surface[1][0]: surface[0]
+        for surface in surfaces_groups_list
+    }  # id -> name
+
     general = texts.general
     graphics_type = 'xy-plot' if graphics_type == 'xy_plot' else graphics_type
     graphics_item = re.search(rf'(\(graphics/{graphics_type}\s.*)', general, re.M).group(1)
@@ -903,7 +911,7 @@ def _read_graphics(texts: CaseTexts, graphics_type: str) -> dict[str, Any]:
                 case [property_name, '.', value]:
                     data[name][property_name] = value
                 case ['surfaces-list', *surfaces_list]:
-                    data[name]['surfaces-list'] = surfaces_list
+                    data[name]['surfaces-list'] = [id_name_map[s] for s in surfaces_list]
                 case ['edge-type', edge_type, '.', _]:
                     data[name]['edge-type'] = edge_type
                 case ['coloring', coloring, coloring_option, '.', _]:
@@ -959,7 +967,6 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     texts = _read_texts(
         file_path,
         need_boundary=flags.get('bd', False),
-        need_cortex=flags.get('surfaces', False) or flags.get('cff', False) or flags.get('units', False),
     )
 
     data: dict[str, Any] = {}
