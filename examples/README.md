@@ -16,13 +16,14 @@ readers in `src/cffview/reader.py` parse these into readable settings:
 
 | File | Source in the case | cffview option | Contents |
 |---|---|---|---|
-| `general.scm` | `/settings/Rampant Variables` | `--solver`, `--mat`, `--solution`, `--rd`, `--plotsets`, `--monitorsets`, `--residuals`, `--iter`, `--contours`, `--vectors`, `--pathlines`, `--xy-plot`, ... | Full solver settings; source of most sections below |
+| `general.scm` | `/settings/Rampant Variables` | `--solver`, `--mat`, `--solution`, `--parameters`, `--rd`, `--plotsets`, `--monitorsets`, `--residuals`, `--iter`, `--contours`, `--vectors`, `--pathlines`, `--xy-plot`, ... | Full solver settings; source of most sections below |
 | `case-config.scm` | `(case-config ...)` inside Rampant Variables | `--solver` | Solver configuration block (segregated/coupled, steady/transient, dimension, turbulence/radiation models...) |
 | `context.scm` | `(context/map-r17+ ...)` inside Rampant Variables | — | Multi-line context variables (internal solver settings) |
 | `materials.scm` | `(materials ...)` inside Rampant Variables | `--mat` | Material properties (density, specific heat, conductivity...) |
 | `boundary.scm` | `/settings/Thread Variables` | `--bd` | Boundary condition settings for every zone |
 | `sliding-interfaces.scm` | `(sliding-interfaces ...)` inside Rampant Variables | `--interfaces` | Sliding / mesh interfaces |
 | `named-expression.scm` | `(named-expressions ...)` inside Rampant Variables | `--ne` | Named expressions |
+| `parameters.scm` | `(parameters/output-parameters ...)` inside Rampant Variables | `--parameters` | Output parameter definitions |
 | `monitor-report-definitions.scm` | `(monitor/report-definitions ...)` inside Rampant Variables | `--rd` | Report definitions |
 | `residuals.scm` | `(residuals ...)` inside Rampant Variables | `--residuals` | Residual settings |
 | `monitorsets.scm` | `(monitor/monitorsets ...)` inside Rampant Variables | `--monitorsets` | Monitor sets |

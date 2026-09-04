@@ -79,6 +79,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--pathlines",), "show graphics pathlines settings"),
         (("--scene",), "show scene settings"),
         (("--xy-plot",), "show graphics xy-plot settings"),
+        (("--parameters",), "show input/output parameters settings"),
     ]
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)

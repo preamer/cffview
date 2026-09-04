@@ -68,6 +68,7 @@ cffview <file> [options]
 | `--pathlines` | Graphics pathlines settings |
 | `--xy-plot` | Graphics xy-plot settings |
 | `--scene` | Graphics scene settings |
+| `--parameters` | Input / output parameters |
 | `--save` | Save the output to `file_name.json` (if `file_name` not specified, it is the same as input file) |
 | `--plot [out\|xy\|dat]` | Plot a data file; without `TYPE`, infer from the file extension |
 

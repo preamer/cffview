@@ -942,6 +942,35 @@ for g_type in ('mesh', 'contours', 'vectors', 'pathlines', 'xy_plot', 'scene'):
     register_reader(g_type)(partial(_read_graphics, graphics_type=g_type))
 
 
+# -------------------------------------------------------- input/output parameters
+
+
+@register_reader('parameters')
+def _read_parameters(texts: CaseTexts) -> dict[str, Any]:
+    data: dict[str, Any] = {'input': {}, 'output': {}}
+    p_input: dict[str, dict[str, str]] = _read_named_expressions(texts)['named-expressions']
+    data['input'] = {name: value for name, value in p_input.items() if value['input-parameter'] == '#t'}
+
+    general = texts.general
+    p_output = re.search(r'(\(parameters/output-parameters.*)', general, re.M).group(1)
+    p_output_list = stringify_nested_list(sexpdata.loads(p_output, true=None)[1])
+    for p_out in p_output_list:
+        name, values = p_out[:2]
+        data['output'][name] = {}
+        for value in values:
+            match value:
+                case [n, '.', v]:
+                    data['output'][name][n] = v
+                case ['name', ['value', '.', v], ['type', '.', t]]:
+                    data['output'][name]['name'] = {'value': v, 'type': t, }
+                case ['settings', [n, '.', v]]:
+                    data['output'][name]['settings'] = {n: v}
+                case ['units-quantity', *v]:
+                    data['output'][name]['units-quantity'] = v
+
+    return {'parameters': data}
+
+
 # ------------------------------------------------------------- dispatcher
 
 
