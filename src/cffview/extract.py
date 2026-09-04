@@ -15,11 +15,6 @@ def print_version(file_path: str) -> None:
     ---------
     file_path : str
         Path to the .h5 file
-
-    Returns
-    -------
-    str
-        Version of the .h5 file
     """
 
     with h5py.File(file_path) as f:
