@@ -250,7 +250,7 @@ def register_reader(name: str) -> Callable[[SubReader], SubReader]:
 
 
 @register_reader('solver')
-def _read_solver(texts: CaseTexts) -> dict[str, Any]:
+def _read_solver(texts: CaseTexts) -> dict[Literal['solver'], Any]:
     general = texts.general
     kvs = _parse_case_config(general)
     dimension = '3d' if kvs['rp-3d?'] == '#t' else '2d'
@@ -277,13 +277,14 @@ def _read_solver(texts: CaseTexts) -> dict[str, Any]:
 
     solver['operating-conditions'] = _get_operating_conditions(general)
     solver['reference-values'] = _get_reference_values(general)
+
     return {'solver': solver}
 
 # ---------------------------------------------------------------- materials
 
 
 @register_reader('mat')
-def _read_materials(texts: CaseTexts) -> dict[str, Any]:
+def _read_materials(texts: CaseTexts) -> dict[Literal['materials'], Any]:
     general = texts.general
     materials = re.search(r'(\(materials.*)', general, re.M).group(1)
     materials_list = stringify_nested_list(sexpdata.loads(materials))
@@ -321,6 +322,7 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
                 case _:
                     value = ' '.join(str(p) for p in property_[1:])
                     data[name][property_name] = f'{property_[0]}/{value}'
+
     return {'materials': data}
 
 
@@ -328,7 +330,7 @@ def _read_materials(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('bd')
-def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
+def _read_boundary(texts: CaseTexts) -> dict[Literal['boundary'], Any]:
     from .boundary import BoundaryFactory
     boundaries = stringify_nested_list(sexpdata.parse(texts.boundary, true=None))
 
@@ -404,7 +406,7 @@ def _read_boundary(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('interfaces')
-def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
+def _read_interfaces(texts: CaseTexts) -> dict[Literal['interfaces'], Any]:
     general = texts.general
     interfaces = re.search(r'(\(sliding-interfaces\s+.*)', general, re.M).group(1)
     interfaces_list = stringify_nested_list(sexpdata.loads(interfaces, true=None)[1])
@@ -426,7 +428,7 @@ def _read_interfaces(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('cff')
-def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
+def _read_custom_field_functions(texts: CaseTexts) -> dict[Literal['custom-field-functions'], Any]:
     cortex = texts.cortex
     cffs = re.search(r'(\(cell-function-defs\s+.*)', cortex, re.M)
     if cffs is None:
@@ -446,7 +448,7 @@ def _read_custom_field_functions(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('units')
-def _read_units(texts: CaseTexts) -> dict[str, Any]:
+def _read_units(texts: CaseTexts) -> dict[Literal['units'], Any]:
     """Parse the unit table from Cortex Variables; empty means default SI units."""
     units = re.search(r'(\(unit-table\s+.*?\)\s*\))', texts.cortex, re.M)
     if units is None:
@@ -467,7 +469,7 @@ def _read_units(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('ne')
-def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
+def _read_named_expressions(texts: CaseTexts) -> dict[Literal['named-expressions'], Any]:
     general = texts.general
     nes = re.search(r'(\(named-expressions.*)', general, re.M).group(1)
     nes_list = stringify_nested_list(sexpdata.loads(nes, true=None)[1])
@@ -486,118 +488,118 @@ def _read_named_expressions(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('solution')
-def _read_solution(texts: CaseTexts) -> dict[str, Any]:
+def _read_solution(texts: CaseTexts) -> dict[Literal['solution'], Any]:
     general = texts.general
     disc_scheme = {
         ds[0]: DISCRETIZATION_SCHEME[ds[1]]
         for ds in re.findall(r'\((.*)/scheme\s+(\d+)\)', general)
     }
 
-    data: dict[str, Any] = {'solution-methods': {}, 'solution-controls': {}}
+    data: dict[str, Any] = {'methods': {}, 'controls': {}}
     cell_lsq = re.search(r'\(recon/cell-lsq\?\s+([^)]+)\)', general).group(1)
     node_lsq = re.search(r'\(recon/node-lsq\?\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['Gradient'] = (
+    data['methods']['Gradient'] = (
         'Least Squares Cell-Based' if cell_lsq == '#t'
         else 'Green-Gauss Node-Based' if node_lsq == '#t'
         else 'Green-Gauss Cell-Based'
     )
     for eq in ('flow', 'pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'disco'):
-        data['solution-methods'][eq] = disc_scheme.get(eq)
+        data['methods'][eq] = disc_scheme.get(eq)
 
     flux_auto = re.search(r'\(pbs/flux-auto-select\?\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['Flux Type'] = 'Auto Select' if flux_auto == '#t' else ''
-    if data['solution-methods']['Flux Type'] != 'Auto Select':
+    data['methods']['Flux Type'] = 'Auto Select' if flux_auto == '#t' else ''
+    if data['methods']['Flux Type'] != 'Auto Select':
         flux_index = re.search(r'\(pbs/flux-index\s+([\d.]+)\)', general).group(1)
-        data['solution-methods']['Flux Type'] = 'Rhie-Chow: distance based' if flux_index == '0' else 'Rhie-Chow: momentum based'
+        data['methods']['Flux Type'] = 'Rhie-Chow: distance based' if flux_index == '0' else 'Rhie-Chow: momentum based'
 
-    data['solution-methods']['Pseudo Time Method'] = _get_pesudo_time_method(general)
+    data['methods']['Pseudo Time Method'] = _get_pesudo_time_method(general)
 
     cell_lsf = re.search(r'\(recon/cell-lsf\?\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['Wraped-Face Gradient Correction'] = 'On' if cell_lsf == '#t' else 'Off'
+    data['methods']['Wraped-Face Gradient Correction'] = 'On' if cell_lsf == '#t' else 'Off'
     relax = re.search(r'\(recon/relax/relax\?\s+([^)]+)\)', general).group(1)
-    data['solution-methods']['High Order Term Relaxation'] = 'On' if relax == '#t' else 'Off'
-    if data['solution-methods']['High Order Term Relaxation'] == 'On':
+    data['methods']['High Order Term Relaxation'] = 'On' if relax == '#t' else 'Off'
+    if data['methods']['High Order Term Relaxation'] == 'On':
         values = {}
         relax_limit_mode = re.search(r'\(recon/relax-limit-mode\s+([\d.]+)\)', general).group(1)
         values['Type'] = 'Standard' if relax_limit_mode == '0' else 'Convection Only'
         variables = re.search(r'\(recon/relax/all\?\s+([^)]+)\)', general).group(1)
         values['Variables'] = 'All Variables' if variables == '#t' else 'Flow Variables Only'
         values['Relaxation Factor'] = re.search(r'\(recon/relax/steady-urf\s+([\d.]+)\)', general).group(1)
-        data['solution-methods']['High Order Term Relaxation'] = values
+        data['methods']['High Order Term Relaxation'] = values
 
-    flow_scheme = data['solution-methods']['flow']
+    flow_scheme = data['methods']['flow']
     if flow_scheme == 'Coupled':
-        if data['solution-methods']['Pseudo Time Method'] != 'Off':
-            data['solution-methods']['Time Scale Factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
+        if data['methods']['Pseudo Time Method'] != 'Off':
+            data['methods']['Time Scale Factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
         for eq in ('pressure', 'mom'):
-            data['solution-controls'][eq] = re.search(
+            data['controls'][eq] = re.search(
                 rf'\(pressure-coupled/{eq}/pseudo-explicit-relax\s+([\d.]+)\)',
                 general
             ).group(1)
         for eq in ('density', 'body-force', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity', 'disco'):
-            data['solution-controls'][eq] = re.search(
+            data['controls'][eq] = re.search(
                 rf'\({eq}/pseudo-relax\s+([\d.]+)\)',
                 general
             ).group(1)
     else:
         if flow_scheme == 'SIMPLEC':
-            data['solution-methods']['Skewness Correction'] = re.search(
+            data['methods']['Skewness Correction'] = re.search(
                 r'\(simplec/skew-iter\s+([\d.]+)\)', general
             ).group(1)
         elif flow_scheme == 'PISO':
-            data['solution-methods']['Skewness Correction'] = re.search(
+            data['methods']['Skewness Correction'] = re.search(
                 r'\(piso/skew-iter\s+([\d.]+)\)', general
             ).group(1)
-            data['solution-methods']['Neighbor Correction'] = re.search(
+            data['methods']['Neighbor Correction'] = re.search(
                 r'\(piso/neighbor-iter\s+([\d.]+)\)', general
             ).group(1)
-            data['solution-methods']['Skewness-Neighbor Coupling'] = re.search(
+            data['methods']['Skewness-Neighbor Coupling'] = re.search(
                 r'\(piso/coupling\?\s+([^)]+)\)', general
             ).group(1)
 
-        pseudo_time_method = data['solution-methods']['Pseudo Time Method']
+        pseudo_time_method = data['methods']['Pseudo Time Method']
         implicit_relax_prefix, explicit_relax_prefix = (
             ('', '') if pseudo_time_method == 'Off' else ('dual-ts-implicit-', 'dual-ts-explicit-')
         )
         if courant_number := re.search(r'\(dual-ts/courant-number\s+([\d.]+)\)', general).group(1) if pseudo_time_method != 'Off' else None:
-            data['solution-methods']['pseudo-time-courant-number'] = courant_number
+            data['methods']['pseudo-time-courant-number'] = courant_number
         implicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{implicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('pressure', 'mom', 'temperature', 'k', 'omega', 'epsilon', 'turb-viscosity'):
-            data['solution-controls'][eq] = implicit_relax_factor.get(eq, '')
+            data['controls'][eq] = implicit_relax_factor.get(eq, '')
         explicit_relax_factor = {
             ur[0]: ur[1]
             for ur in re.findall(rf'\((.*)/{explicit_relax_prefix}relax\s+([\d.]+)\)', general)
         }
         for eq in ('density', 'body-force', 'disco'):
-            data['solution-controls'][eq] = explicit_relax_factor.get(eq, '')
+            data['controls'][eq] = explicit_relax_factor.get(eq, '')
 
     turb_model = _get_turb_model(general)
-    if turb_model == 'lam':
+    if turb_model in ('lam', 'inviscid'):
         for eq in ['k', 'omega', 'epsilon', 'turb-viscosity']:
-            data['solution-methods'].pop(eq, None)
-            data['solution-controls'].pop(eq, None)
+            data['methods'].pop(eq, None)
+            data['controls'].pop(eq, None)
     elif turb_model == 'kw':
-        data['solution-methods'].pop('epsilon', None)
-        data['solution-controls'].pop('epsilon', None)
+        data['methods'].pop('epsilon', None)
+        data['controls'].pop('epsilon', None)
     elif turb_model == 'ke':
-        data['solution-methods'].pop('omega', None)
-        data['solution-controls'].pop('omega', None)
+        data['methods'].pop('omega', None)
+        data['controls'].pop('omega', None)
 
     radiation_model = _get_radiation_model(general)
-    data['solution-methods'].pop('disco', None) if radiation_model != 'disco' else None
-    data['solution-controls'].pop('disco', None) if radiation_model != 'disco' else None
+    data['methods'].pop('disco', None) if radiation_model != 'disco' else None
+    data['controls'].pop('disco', None) if radiation_model != 'disco' else None
 
-    return data
+    return {'solution': data}
 
 
 # ------------------------------------------------------ report definitions
 
 
 @register_reader('rd')
-def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
+def _read_report_definitions(texts: CaseTexts) -> dict[Literal['report-definitions'], Any]:
     general = texts.general
     rds = re.search(r'(\(monitor/report-definitions.*)', general, re.M).group(1)
     rds_list = stringify_nested_list(sexpdata.loads(rds, true=None)[1])
@@ -642,22 +644,27 @@ def _read_report_definitions(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('residuals')
-def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
+def _read_residuals(texts: CaseTexts) -> dict[Literal['residuals'], Any]:
     general = texts.general
     data: dict[str, Any] = {}
 
-    for setting in [
+    for setting in (
         r'advanced-options\?', r'normalize\?', r'compute-local\?',
         r'scale\?', 'convergence-criterion-type', 'n-display',
         'n-save', r'plot\?', r'print\?', 'n-maximize-norms',
-    ]:
+    ):
         value = re.search(
             rf'\(residuals/{setting}\s+(#[tf]|[\d.]+)\)',
             general,
         ).group(1)
         data[setting.removesuffix(r'\?')] = value
     cct = data['convergence-criterion-type']
-    data['convergence-criterion-type'] = 'absolute' if cct == '0' else 'none'
+    data['convergence-criterion-type'] = (
+        'absolute' if cct == '0'
+        else 'relative' if cct == '1'
+        else 'absolute-relative' if cct == '2'
+        else 'none'
+    )
 
     residuals = 'residuals/settings-transient' if _get_solver_time(general) == 'transient' else 'residuals/settings'
     res = re.search(rf'(\({residuals}\s+.*)', general, re.M).group(1)
@@ -669,6 +676,7 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
                 'monitor': eq[1],
                 'check-convergence': eq[3],
                 'absolute-criteria': eq[4],
+                'relative-criteria': eq[-1],
             }
     return {'residuals': data}
 
@@ -677,7 +685,7 @@ def _read_residuals(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('monitorsets')
-def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
+def _read_monitorsets(texts: CaseTexts) -> dict[Literal['monitorsets'], Any]:
     general = texts.general
     monitorsets = re.search(r'(\(monitor/monitorsets.*)', general, re.M).group(1)
     monitorsets_list = stringify_nested_list(sexpdata.loads(monitorsets, true=None)[1])
@@ -698,7 +706,7 @@ def _read_monitorsets(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('plotsets')
-def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
+def _read_plotsets(texts: CaseTexts) -> dict[Literal['plotsets'], Any]:
     general = texts.general
     plotsets = re.search(r'(\(monitor/plotsets.*)', general, re.M).group(1)
     plotsets_list = stringify_nested_list(sexpdata.loads(plotsets, true=None)[1])
@@ -719,7 +727,7 @@ def _read_plotsets(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('convergencesets')
-def _read_convergence(texts: CaseTexts) -> dict[str, Any]:
+def _read_convergence(texts: CaseTexts) -> dict[Literal['convergencesets'], Any]:
     general = texts.general
     convergencesets = re.search(r'(\(monitor/convergencesets.*)', general, re.M).group(1)
     convergencesets_list = stringify_nested_list(sexpdata.loads(convergencesets, true=None)[1])
@@ -745,7 +753,7 @@ def _read_convergence(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('cell')
-def _read_cell_registers(texts: CaseTexts) -> dict[str, Any]:
+def _read_cell_registers(texts: CaseTexts) -> dict[Literal['cell-registers'], Any]:
     general = texts.general
     cell_registers = re.search(r'(\(cell-registers.*)', general, re.M).group(1)
     cell_registers_list = stringify_nested_list(sexpdata.loads(cell_registers, true=None)[1])
@@ -774,7 +782,7 @@ def _read_cell_registers(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('iter')
-def _read_iter(texts: CaseTexts) -> dict[str, Any]:
+def _read_iter(texts: CaseTexts) -> dict[Literal['iter'], Any]:
     general = texts.general
     data: dict[str, Any] = {}
 
@@ -806,8 +814,8 @@ def _read_iter(texts: CaseTexts) -> dict[str, Any]:
         data['save-steady-statistics'] = re.search(r'\(save-steady-statistics\?\s+(#[tf])\)', general).group(1)
     else:
         data['physical-time-step'] = _sel_expr(general, 'physical-time-step')
-        for key in ['time-steps', 'max-iters-per-step', 'time-step', 'flow-time']:
-            data[key] = re.search(rf'\({key}\s+(\d+)\)', general).group(1)
+        for key in ('time-step', 'max-iterations-per-step', 'flow-time', 'time/total-timesteps'):
+            data[key] = re.search(rf'\({key}\s+([\d.]+)\)', general).group(1)
 
     return {'iter': data}
 
@@ -816,7 +824,7 @@ def _read_iter(texts: CaseTexts) -> dict[str, Any]:
 
 
 @register_reader('surfaces')
-def _read_surfaces(texts: CaseTexts) -> dict[str, Any]:
+def _read_surfaces(texts: CaseTexts) -> dict[Literal['surfaces'], Any]:
     cortex = texts.cortex
 
     surfaces_groups = re.search(r'(\(surfaces/groups.*)', cortex, re.M).group(1)
@@ -946,7 +954,7 @@ for g_type in ('mesh', 'contours', 'vectors', 'pathlines', 'xy_plot', 'scene'):
 
 
 @register_reader('parameters')
-def _read_parameters(texts: CaseTexts) -> dict[str, Any]:
+def _read_parameters(texts: CaseTexts) -> dict[Literal['parameters'], Any]:
     data: dict[str, Any] = {'input': {}, 'output': {}}
     p_input: dict[str, dict[str, str]] = _read_named_expressions(texts)['named-expressions']
     data['input'] = {name: value for name, value in p_input.items() if value['input-parameter'] == '#t'}
