@@ -887,6 +887,13 @@ def _read_surfaces(texts: CaseTexts) -> dict[Literal['surfaces'], Any]:
                     'min': min_value,
                     'max': max_value,
                 }
+            case ['point-surface', virtual_id, reference_frame, [[x, y, z]], _, snap_type, *_]:
+                data[virtual_id_name_map[virtual_id]] = {
+                    'type': 'point-surface',
+                    'reference frame': reference_frame,
+                    'point': [x, y, z],
+                    'snap type': snap_type,
+                }
             case _:
                 continue
 
