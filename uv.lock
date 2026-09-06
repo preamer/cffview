@@ -22,7 +22,7 @@ wheels = [
 
 [[package]]
 name = "cffview"
-version = "0.5.1"
+version = "0.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "h5py" },

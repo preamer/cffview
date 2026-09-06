@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.2] - 2026-09-06
+
 ### Added
 
 - `--convergencesets` for showing convergence sets definitions.
 - `--cell` and `--cell-registers` for showing cell registers definitions.
 - `--parameters` for showing input / output parameters.
+- `point-surface` to `--surfaces`
 
 ## [v0.5.1] - 2026-09-01
 
