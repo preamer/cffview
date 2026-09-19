@@ -7,15 +7,20 @@ requested readers and merges their results.
 """
 
 import re
-from collections import namedtuple
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, NamedTuple
 from functools import lru_cache, singledispatch, partial
 
 import sexpdata
 
+
+class CaseTexts(NamedTuple):
+    general: str
+    boundary: str
+    cortex: str
+
+
 type NestedStrList = list[str | NestedStrList]
 type SubReader = Callable[[CaseTexts], dict[str, Any]]
-CaseTexts = namedtuple('CaseTexts', ['general', 'boundary', 'cortex'])
 
 # from Ansys Fluent sg.h
 DISCRETIZATION_SCHEME = {
@@ -631,7 +636,9 @@ def _read_report_definitions(texts: CaseTexts) -> dict[Literal['report-definitio
         else:
             ids = [id_.split('.')[0] for id_ in rd[1]]
             values = sum(rd[2][2:], [])
-            right_order_ids = data[name].get('zone-list') or data[name].get('surface-ids') or data[name].get('zone-ids')
+            right_order_ids = (
+                data[name].get('zone-list') or data[name].get('surface-ids') or data[name].get('zone-ids')
+            )
             sorted_values = [0] * len(values)
             for i, v in zip(ids, values):
                 sorted_values[right_order_ids.index(i)] = v
@@ -666,7 +673,11 @@ def _read_residuals(texts: CaseTexts) -> dict[Literal['residuals'], Any]:
         else 'none'
     )
 
-    residuals = 'residuals/settings-transient' if _get_solver_time(general) == 'transient' else 'residuals/settings'
+    residuals = (
+        'residuals/settings-transient'
+        if _get_solver_time(general) == 'transient'
+        else 'residuals/settings'
+    )
     res = re.search(rf'(\({residuals}\s+.*)', general, re.M).group(1)
     res = sexpdata.loads(res, true=None)[1]
     if str(res) != '#f':
@@ -773,7 +784,9 @@ def _read_cell_registers(texts: CaseTexts) -> dict[Literal['cell-registers'], An
                         for kv in kvs
                     })
                 case ['display-options', *options]:
-                    data[name]['display-options'] = {option[0]: option[2] for option in options if option[1] == '.'}
+                    data[name]['display-options'] = {
+                        option[0]: option[2] for option in options if option[1] == '.'
+                    }
 
     return {'cell-registers': data}
 
@@ -796,7 +809,9 @@ def _read_iter(texts: CaseTexts) -> dict[Literal['iter'], Any]:
                 data['pseudo-time-step'] = _sel_expr(general, 'pseudo-time-step')
             else:
                 data['time-scale-factor'] = _sel_expr(general, 'pseudo-auto-time-step-scale-factor')
-                length_scale_method = re.search(r'\(pseudo/autotime-lscale-option\s+(\d+)\)', general).group(1)
+                length_scale_method = re.search(
+                    r'\(pseudo/autotime-lscale-option\s+(\d+)\)', general
+                ).group(1)
                 data['length-scale-method'] = (
                     'Aggressive' if length_scale_method == '0' else
                     'Conservative' if length_scale_method == '1' else
@@ -811,7 +826,9 @@ def _read_iter(texts: CaseTexts) -> dict[Literal['iter'], Any]:
         data['iterations'] = re.search(r'\(number-of-iterations\s+(\d+)\)', general).group(1)
         data['reporting-interval'] = re.search(r'\(iteration-chunk\s+(\d+)\)', general).group(1)
         data['update-interval'] = re.search(r'\(profile/update-interval\s+(\d+)\)', general).group(1)
-        data['save-steady-statistics'] = re.search(r'\(save-steady-statistics\?\s+(#[tf])\)', general).group(1)
+        data['save-steady-statistics'] = re.search(
+            r'\(save-steady-statistics\?\s+(#[tf])\)', general
+        ).group(1)
     else:
         data['physical-time-step'] = _sel_expr(general, 'physical-time-step')
         for key in ('time-step', 'max-iterations-per-step', 'flow-time', 'time/total-timesteps'):

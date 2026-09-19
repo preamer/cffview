@@ -31,5 +31,5 @@ Repository = "https://github.com/preamer/cffview"
 where = ["src"]
 
 [tool.autopep8]
-max_line_length = 120
+max_line_length = 110
 ignore = "E401"
