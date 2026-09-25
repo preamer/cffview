@@ -13,3 +13,8 @@ wheels/
 *.msh.h5
 *.cas.h5
 *.dat.h5
+
+# Others
+try.py
+read_cash5.py
+cffview.xlsx

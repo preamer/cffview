@@ -7,9 +7,10 @@ requested readers and merges their results.
 """
 
 import re
+from functools import lru_cache, singledispatch
 from typing import Any, Callable, Literal, NamedTuple
-from functools import lru_cache, singledispatch, partial
 
+import h5py
 import sexpdata
 
 
@@ -79,10 +80,9 @@ type RadiationModel = Literal['rosseland', 'p1', 'dtrm', 's2s', 'disco']
 
 
 def stringify_nested_list(lst: list[Any]) -> NestedStrList:
-    from sexpdata import Quoted
     result = []
     for item in lst:
-        if isinstance(item, Quoted):
+        if isinstance(item, sexpdata.Quoted):
             item = item.x  # unwrap Quoted to its inner value
         result.append(stringify_nested_list(item) if isinstance(item, list) else str(item))
     return result
@@ -90,8 +90,6 @@ def stringify_nested_list(lst: list[Any]) -> NestedStrList:
 
 def _read_texts(file_path: str, *, need_boundary: bool = False) -> CaseTexts:
     """Decode the Scheme strings under ``/settings`` of a .cas.h5 file."""
-    import h5py
-
     with h5py.File(file_path) as f:
         settings: h5py.Group = f['/settings']
         general = settings['Rampant Variables'][0].decode()
@@ -974,7 +972,7 @@ def _read_graphics(texts: CaseTexts, graphics_type: str) -> dict[str, Any]:
 
 
 for g_type in ('mesh', 'contours', 'vectors', 'pathlines', 'xy_plot', 'scene'):
-    register_reader(g_type)(partial(_read_graphics, graphics_type=g_type))
+    register_reader(g_type)(lambda t, g_type=g_type: _read_graphics(t, g_type))
 
 
 # -------------------------------------------------------- input/output parameters
