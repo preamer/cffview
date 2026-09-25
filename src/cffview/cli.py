@@ -12,24 +12,6 @@ import glob
 import argparse
 
 
-def _expand_path(file_path: str) -> str:
-    """Resolve a glob pattern to the first matching file (or the path as-is).
-
-    Parameters
-    ----------
-    file_path : str
-        Path or glob pattern (e.g. ``*.cas.h5``).
-
-    Returns
-    -------
-    str
-        The first matching path when ``file_path`` is a pattern with
-        matches; otherwise ``file_path`` unchanged.
-    """
-    matches = sorted(glob.glob(file_path))
-    return matches[0] if matches else file_path
-
-
 def main() -> None:
     BANNER = r"""
         ________      _
@@ -59,8 +41,6 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         (("--plotmesh",), "show mesh using pyvista"),
         (("--plotdata",), "plot data using pyvista"),
         (("--solver",), "show solver settings"),
-        (("--mat", "--materials"), "show materials settings"),
-        (("--bd", "--boundary"), "show boundary settings"),
         (("--interfaces",), "show mesh interfaces settings"),
         (("--mesh",), "show mesh settings"),
         (("--ne", "--named-expressions"), "show named-expressions settings"),
@@ -83,6 +63,26 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
     ]
     for flags, help_text in ARGUMENTS:
         parser.add_argument(*flags, action="store_true", help=help_text)
+    parser.add_argument(
+        "--mat", "--materials",
+        nargs="*",
+        default=False,
+        metavar="TYPE",
+        help=(
+            "show materials settings, optionally filtered by material type "
+            "(e.g. --mat fluid solid; empty means no filtering)"
+        ),
+    )
+    parser.add_argument(
+        "--bd", "--boundary",
+        nargs="*",
+        default=False,
+        metavar="TYPE",
+        help=(
+            "show boundary settings, optionally filtered by boundary type "
+            "(e.g. --bd vi wall po; empty means no filtering)"
+        ),
+    )
     parser.add_argument(
         "--units",
         nargs="*",
@@ -108,8 +108,7 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
 
     args = parser.parse_args()
 
-    args.file_path = _expand_path(args.file_path)
-
+    args.file_path = sorted(glob.glob(args.file_path))[0] if glob.glob(args.file_path) else args.file_path
     if not args.file_path.endswith((".cas.h5", ".msh.h5")) and args.plot is False:
         parser.error("Invalid arguments, please provide a .cas.h5 or .msh.h5 file or add --plot argument to plot file")
 
@@ -141,9 +140,27 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
             from .utils import print_colored_dict
             from .reader import read_case, READERS
             kwargs = {k: getattr(args, k) for k in READERS.keys()}
+            if args.mat is not False:
+                kwargs['mat'] = True
+            if args.bd is not False:
+                kwargs['bd'] = True
             if args.units is not False:
                 kwargs['units'] = True
             output = read_case(args.file_path, **kwargs)
+            if isinstance(args.mat, list) and args.mat:
+                keywords = [k.lower() for k in args.mat]
+                output['materials'] = {
+                    material_type: materials
+                    for material_type, materials in output['materials'].items()
+                    if material_type.lower() in keywords
+                }
+            if isinstance(args.bd, list) and args.bd:
+                from .boundary import BoundaryFactory
+                output['boundary'] = {
+                    type_name: zones
+                    for type_name, zones in output['boundary'].items()
+                    if BoundaryFactory.matches(type_name, args.bd)
+                }
             if isinstance(args.units, list) and args.units:
                 keywords = [k.lower() for k in args.units]
                 output['units'] = {

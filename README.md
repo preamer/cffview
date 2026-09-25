@@ -47,8 +47,8 @@ cffview <file> [options]
 | `--plotmesh` | Visualise the mesh interactively with PyVista |
 | `--plotdata` | Visualise the data interactively with PyVista (may not work, depending on `vtkFLUENTCFFReader`) |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity, ... |
-| `--mat`, `--materials` | Material properties |
-| `--bd`, `--boundary` | Boundary condition settings |
+| `--mat [TYPE ...]`, `--materials` | Material properties grouped by material type (`fluid` / `solid`), optionally filtered by type |
+| `--bd [TYPE ...]`, `--boundary` | Boundary condition settings, optionally filtered by boundary type (e.g. `vi wall po`; single-word types use the whole word) |
 | `--interfaces` | Mesh interfaces settings |
 | `--ne`, `--named-expressions` | Named expressions |
 | `--cff`, `--custom-field-functions` | Custom field functions |

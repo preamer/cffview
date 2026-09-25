@@ -294,23 +294,23 @@ def _read_materials(texts: CaseTexts) -> dict[Literal['materials'], Any]:
     materials = re.search(r'(\(materials.*)', general, re.M).group(1)
     materials_list = stringify_nested_list(sexpdata.loads(materials))
 
-    data: dict[str, Any] = {}
+    data: dict[str, dict[str, Any]] = {}
     for material in materials_list[1]:
-        name = material[0]
-        data[name] = {'type': material[1]}
+        name, material_type = material[:2]
+        properties: dict[str, Any] = {}
         for property_ in material[2:]:
             property_name = property_[0]
             match property_[1:]:
                 case ['.', value]:
-                    data[name][property_name] = value
+                    properties[property_name] = value
                 case [[sel, '.', expr], *_]:
-                    data[name][property_name] = f'{sel}/{expr}'
+                    properties[property_name] = f'{sel}/{expr}'
                 case [['polynomial', 'piecewise-linear', *values_list], *_]:
-                    data[name][property_name] = {
+                    properties[property_name] = {
                         f'polynomial/piecewise-linear': [f'{v[0]}, {v[2]}' for v in values_list]
                     }
                 case [['polynomial', polynomial_type, *values_list], *_] if polynomial_type in ('piecewise-polynomial', 'nasa-9-piecewise-polynomial'):
-                    data[name][property_name] = {
+                    properties[property_name] = {
                         f'polynomial/{polynomial_type}': [str(v).strip('[]') for v in values_list]
                     }
                 case [['orthotropic', *orth_properties], *_]:
@@ -321,12 +321,13 @@ def _read_materials(texts: CaseTexts) -> dict[Literal['materials'], Any]:
                             value[orth_property_name] = str([int(i) for i in orth_property[1:]]).strip('[]')
                         elif orth_property_name in ('k0', 'k1', 'k2'):
                             value[orth_property_name] = _sel_expr(orth_property[1])
-                    data[name][property_name] = value
+                    properties[property_name] = value
                 case [[sel, *values_list], *_]:
-                    data[name][property_name] = {sel: [str(v).strip('[]') for v in values_list]}
+                    properties[property_name] = {sel: [str(v).strip('[]') for v in values_list]}
                 case _:
                     value = ' '.join(str(p) for p in property_[1:])
-                    data[name][property_name] = f'{property_[0]}/{value}'
+                    properties[property_name] = f'{property_[0]}/{value}'
+        data.setdefault(material_type, {})[name] = properties
 
     return {'materials': data}
 
@@ -800,11 +801,13 @@ def _read_iter(texts: CaseTexts) -> dict[Literal['iter'], Any]:
     data: dict[str, Any] = {}
 
     if _get_solver_time(general) == 'steady':
-        pseudo_time_method = _get_pesudo_time_method(general)
-        if pseudo_time_method != 'Off':
-            data['time-step-method'] = 'Automatic' if re.search(
-                r'\(pseudo-auto-time-step\?\s+(#[tf])\)', general
-            ).group(1) == '#t' else 'User-Specified'
+        data['pseudo-time-method'] = _get_pesudo_time_method(general)
+        if data['pseudo-time-method'] != 'Off':
+            data['time-step-method'] = (
+                'Automatic'
+                if re.search(r'\(pseudo-auto-time-step\?\s+(#[tf])\)', general).group(1) == '#t'
+                else 'User-Specified'
+            )
             if data['time-step-method'] == 'User-Specified':
                 data['pseudo-time-step'] = _sel_expr(general, 'pseudo-time-step')
             else:

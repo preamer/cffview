@@ -41,8 +41,8 @@ cffview <文件> [选项]
 | `--plotmesh` | 使用 PyVista 交互式显示网格 |
 | `--plotdata` | 使用 PyVista 以交互方式绘制计算结果（可能不起作用，依赖 `vtkFLUENTCFFReader`） |
 | `--solver` | 求解器类型、时间类型、维度、精度、湍流模型、能量方程、辐射模型、重力等 |
-| `--mat`, `--materials` | 材料属性 |
-| `--bd`, `--boundary` | 边界条件设置 |
+| `--mat [类型 ...]`, `--materials` | 材料属性（按材料类型 `fluid` / `solid` 分组，可按类型过滤） |
+| `--bd [类型 ...]`, `--boundary` | 边界条件设置（可按边界类型过滤，如 `vi wall po`；单个词的边界类型用完整词） |
 | `--interfaces` | 网格交界面设置 |
 | `--ne`, `--named-expressions` | 命名表达式 |
 | `--cff`, `--custom-field-functions` | 自定义场函数 |

@@ -119,7 +119,7 @@ DATA_KEYS = (
 )
 
 
-def print_colored_dict(data) -> None:
+def print_colored_dict(data: dict) -> None:
     """Print nested data in 4-space JSON format.
 
     Keys (including colon) : cycle through 6 hued colours per nesting level.

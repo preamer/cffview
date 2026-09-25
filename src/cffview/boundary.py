@@ -150,6 +150,27 @@ class BoundaryFactory:
         boundary_cls = cls._REGISTRY.get(type_, NotImplementedBoundary)
         return boundary_cls(name, id_)
 
+    @staticmethod
+    def abbr(type_name: str) -> str:
+        """Shorthand for a boundary type name (used to filter ``--bd`` output).
+
+        Single-word types keep the whole word (``wall``); hyphenated types use
+        the initials of each part (``velocity-inlet`` -> ``vi``).
+        """
+        parts = type_name.split('-')
+        return type_name if len(parts) == 1 else ''.join(part[0] for part in parts)
+
+    @classmethod
+    def matches(cls, type_name: str, keywords: list[str]) -> bool:
+        """Whether a boundary type name matches any of the filter keywords.
+
+        Keywords are compared case-insensitively against both the full type
+        name and its :meth:`abbr` shorthand.
+        """
+        full = type_name.lower()
+        short = cls.abbr(type_name).lower()
+        return any(keyword.lower() in (full, short) for keyword in keywords)
+
 
 class ToDictMixin:
     def _map_consts(self, data: dict[str, str]) -> None:
