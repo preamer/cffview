@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--mat` and `--bd` now accept optional type filters: `--mat fluid solid` filters materials by type, `--bd vi wall po` filters boundaries by type (single-word types use the whole word, hyphenated types use their initials). An empty filter list keeps the previous behaviour.
 - `--mat` output is now grouped by material type (`{"fluid": {...}, "solid": {...}}` instead of a flat mapping with a `type` field per material).
 
+### Fixed
+
+- Fix error when `--units` with filter options but units are default SI units.
+
 ## [v0.5.2] - 2026-09-06
 
 ### Added

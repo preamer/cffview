@@ -11,9 +11,7 @@ the CLI together; the actual work lives in the feature modules.
 import glob
 import argparse
 
-
-def main() -> None:
-    BANNER = r"""
+BANNER = r"""
         ________      _
   _____/ __/ __/   __(_)__ _      __
  / ___/ /_/ /_| | / / / _ \ | /| / /
@@ -23,6 +21,8 @@ def main() -> None:
 A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without opening Fluent
 """
 
+
+def main() -> None:
     parser = argparse.ArgumentParser(
         prog='cffview',
         description=BANNER,
@@ -139,13 +139,10 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
         else:
             from .utils import print_colored_dict
             from .reader import read_case, READERS
-            kwargs = {k: getattr(args, k) for k in READERS.keys()}
-            if args.mat is not False:
-                kwargs['mat'] = True
-            if args.bd is not False:
-                kwargs['bd'] = True
-            if args.units is not False:
-                kwargs['units'] = True
+            kwargs = {
+                k: getattr(args, k) if not isinstance(getattr(args, k), list) else True
+                for k in READERS.keys()
+            }
             output = read_case(args.file_path, **kwargs)
             if isinstance(args.mat, list) and args.mat:
                 keywords = [k.lower() for k in args.mat]
@@ -162,19 +159,21 @@ A Python CLI tool to view Ansys Fluent .cas.h5/.msh.h5/.dat.h5 files without ope
                     if BoundaryFactory.matches(type_name, args.bd)
                 }
             if isinstance(args.units, list) and args.units:
-                keywords = [k.lower() for k in args.units]
-                output['units'] = {
-                    name: value
-                    for name, value in output['units'].items()
-                    if any(
-                        k in name.lower() or k in str(value[0]).lower()
-                        for k in keywords
-                    )
-                }
+                if isinstance(output['units'], dict):
+                    keywords = [k.lower() for k in args.units]
+                    output['units'] = {
+                        name: value
+                        for name, value in output['units'].items()
+                        if any(
+                            k in name.lower() or k in str(value[0]).lower()
+                            for k in keywords
+                        )
+                    }
             print_colored_dict(output)
 
             if args.save is not False:
                 import json
-                save_name = args.save if args.save else args.file_path
+                save_name = args.save or args.file_path
                 with open(f"{save_name}.json", "w", encoding="utf-8") as f:
                     json.dump(output, f, ensure_ascii=False, indent=4)
+                print(f"Saved to {save_name}.json")
