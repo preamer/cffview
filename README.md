@@ -43,7 +43,7 @@ cffview <file> [options]
 | Option | Description |
 |---|---|
 | `--version` | Print the Fluent version of file |
-| `--extract` | Dump raw Scheme settings to `general.scm` and `boundary.scm` |
+| `--extract` | Dump raw Scheme settings to `general.scm` / `boundary.scm` / `cortex.scm` |
 | `--plotmesh` | Visualise the mesh interactively with PyVista |
 | `--plotdata` | Visualise the data interactively with PyVista (may not work, depending on `vtkFLUENTCFFReader`) |
 | `--solver` | Solver type, time, dimension, precision, turbulence model, energy, radiation, gravity, ... |
