@@ -161,15 +161,43 @@ class BoundaryFactory:
         return type_name if len(parts) == 1 else ''.join(part[0] for part in parts)
 
     @classmethod
-    def matches(cls, type_name: str, keywords: list[str]) -> bool:
-        """Whether a boundary type name matches any of the filter keywords.
+    def matches(cls, value: str, keywords: list[str], aliases: tuple[str, ...] = ()) -> bool:
+        """Whether ``value`` or one of its ``aliases`` matches a filter keyword.
 
-        Keywords are compared case-insensitively against both the full type
-        name and its :meth:`abbr` shorthand.
+        A keyword matches when it is a case-insensitive substring of the value
+        or of any alias (an exact match is just a special case). Boundary types
+        pass their :meth:`abbr` shorthand as an alias, so ``vi`` matches
+        ``velocity-inlet`` while a zone name is matched by substring alone.
         """
-        full = type_name.lower()
-        short = cls.abbr(type_name).lower()
-        return any(keyword.lower() in (full, short) for keyword in keywords)
+        haystacks = (value, *aliases)
+        return any(
+            keyword.lower() in haystack.lower()
+            for keyword in keywords
+            for haystack in haystacks
+        )
+
+    @classmethod
+    def filter_boundaries(
+        cls,
+        boundaries: dict[str, list[dict]],
+        keywords: list[str],
+    ) -> dict[str, list[dict]]:
+        """Filter boundary output by type name/shorthand or by zone name.
+
+        A keyword matching the boundary type (full name or :meth:`abbr`
+        shorthand) keeps every zone of that type; otherwise only the zones
+        whose ``name`` contains the keyword are kept. Types without any match
+        are dropped.
+        """
+        filtered: dict[str, list[dict]] = {}
+        for type_name, zones in boundaries.items():
+            if cls.matches(type_name, keywords, aliases=(cls.abbr(type_name),)):
+                filtered[type_name] = zones
+                continue
+            matched = [zone for zone in zones if cls.matches(zone.get('name', ''), keywords)]
+            if matched:
+                filtered[type_name] = matched
+        return filtered
 
 
 class ToDictMixin:

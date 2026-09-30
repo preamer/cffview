@@ -146,18 +146,22 @@ def main() -> None:
             output = read_case(args.file_path, **kwargs)
             if isinstance(args.mat, list) and args.mat:
                 keywords = [k.lower() for k in args.mat]
-                output['materials'] = {
-                    material_type: materials
-                    for material_type, materials in output['materials'].items()
-                    if material_type.lower() in keywords
-                }
+                filtered: dict = {}
+                for material_type, materials in output['materials'].items():
+                    if material_type.lower() in keywords:
+                        filtered[material_type] = materials
+                        continue
+                    matched = {
+                        name: properties
+                        for name, properties in materials.items()
+                        if any(keyword in name.lower() for keyword in keywords)
+                    }
+                    if matched:
+                        filtered[material_type] = matched
+                output['materials'] = filtered
             if isinstance(args.bd, list) and args.bd:
                 from .boundary import BoundaryFactory
-                output['boundary'] = {
-                    type_name: zones
-                    for type_name, zones in output['boundary'].items()
-                    if BoundaryFactory.matches(type_name, args.bd)
-                }
+                output['boundary'] = BoundaryFactory.filter_boundaries(output['boundary'], args.bd)
             if isinstance(args.units, list) and args.units:
                 if isinstance(output['units'], dict):
                     keywords = [k.lower() for k in args.units]

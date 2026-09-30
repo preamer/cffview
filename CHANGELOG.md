@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `--mat` and `--bd` now accept optional type filters: `--mat fluid solid` filters materials by type, `--bd vi wall po` filters boundaries by type (single-word types use the whole word, hyphenated types use their initials). An empty filter list keeps the previous behaviour.
+- `--mat` and `--bd` now accept optional filters that match either the type or an entry name. A keyword matching the type (`--mat fluid`, `--bd vi wall po`; single-word types use the whole word, hyphenated types use their initials) keeps every entry of that type; otherwise entries whose name contains the keyword are kept (`--bd shadow`, `--mat air`). An empty filter list keeps the previous behaviour.
 - `--mat` output is now grouped by material type (`{"fluid": {...}, "solid": {...}}` instead of a flat mapping with a `type` field per material).
 
 ### Fixed
