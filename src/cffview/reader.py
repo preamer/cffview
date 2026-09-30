@@ -222,17 +222,22 @@ def _(general: str, name: str) -> str:
 
 
 @_sel_expr.register(list)
-def _(lst: list[str], return_expr: bool = False) -> str:
+def _(lst: NestedStrList, return_expr: bool = False) -> str:
     """Get sel/expr pair in list like ['constant', '.', '1'], ['profile', '12'], ..."""
-    if len(lst) == 3 and lst[1] == '.':
-        return lst[2] if return_expr else f'{lst[0]}/{lst[2]}'
-    elif len(lst) == 2:
-        return lst[1] if return_expr else f'{lst[0]}/{lst[1]}'
-    elif len(lst) > 1:
-        rest = str(list(lst[1:])).strip('[]')
-        return rest if return_expr else f'{lst[0]}/{rest}'
-    else:
-        return lst[0]
+    match lst:
+        case [sel, '.', expr]:
+            return expr if return_expr else f'{sel}/{expr}'
+        case [sel, expr]:
+            return expr if return_expr else f'{sel}/{expr}'
+        case [p, [sel, '.', expr], *_]:
+            return expr if return_expr else f'{p}/{sel}/{expr}'
+        case [p, [sel, expr], *_]:
+            return expr if return_expr else f'{p}/{sel}/{expr}'
+        case [sel, *expr]:
+            rest = str(expr).strip('[]')
+            return rest if return_expr else f'{sel}/{rest}'
+        case _:
+            return lst[0]
 
 
 # ------------------------------------------------------------- dispatcher
@@ -336,32 +341,9 @@ def _read_materials(texts: CaseTexts) -> dict[Literal['materials'], Any]:
 @register_reader('bd')
 def _read_boundary(texts: CaseTexts) -> dict[Literal['boundary'], Any]:
     from .boundary import BoundaryFactory
+    data: dict[str, Any] = {}
     boundaries = stringify_nested_list(sexpdata.parse(texts.boundary, true=None))
 
-    def format_component(comp) -> str:
-        """Format one component of a multi-value boundary property.
-
-        Handles plain values (``'2'``), single selectors (``['constant', '.', v]``,
-        ``['profile', sel, expr]``) and nested selector pairs such as
-        ``[['profile', sel, expr], ['constant', '.', v]]`` (prefers the profile,
-        falls back to the constant).
-        """
-        if isinstance(comp, str):
-            return comp
-        if isinstance(comp, list):
-            if len(comp) == 3:
-                if comp[0] == 'constant' and comp[1] == '.':
-                    return f'constant/{comp[2]}'
-                if comp[0] == 'profile' and comp[1]:
-                    return f'profile/{comp[1]}/{comp[2]}'
-            if comp and all(isinstance(item, list) for item in comp):
-                for item in comp:
-                    formatted = format_component(item)
-                    if formatted:
-                        return formatted
-        return str(comp)
-
-    data: dict[str, Any] = {}
     for boundary_info in boundaries:
         id_, type_, name, _ = [_ for _ in boundary_info[1]]
         new_boundary = BoundaryFactory.create(name, id_, type_)
@@ -379,11 +361,6 @@ def _read_boundary(texts: CaseTexts) -> dict[Literal['boundary'], Any]:
                         value = f'{sel}/{expr}'
                     case [_, ['profile', sel, expr], *_]:
                         value = f'profile/{sel}/{expr}'
-                    case [_, *components] if any(
-                        isinstance(c, list) and c and isinstance(c[0], list)
-                        for c in components
-                    ):
-                        value = ' '.join(format_component(c) for c in components)
                     case ['source-terms', *source_terms_list]:
                         value = {}
                         for source_term in (st for st in source_terms_list if len(st) == 2):
@@ -393,8 +370,12 @@ def _read_boundary(texts: CaseTexts) -> dict[Literal['boundary'], Any]:
                                 value[eq_name] = f'{source_property[0]}/{source_property[2]}'
                             elif source_property[0] == 'profile' and source_property[1]:
                                 value[eq_name] = f'profile/{source_property[1]}/{source_property[2]}'
+                    case ['shell-conduction', *shell_conduction_list]:
+                        value = {}
+                        for i, shell in enumerate(shell_conduction_list):
+                            value[f'shell-{i}'] = [_sel_expr(p, return_expr=False) for p in shell]
                     case _:
-                        value = ''
+                        value = str(property_list[1:])
                 setattr(new_boundary, property_name, value)
 
         b_list.append(
@@ -1023,7 +1004,7 @@ def read_case(file_path: str, **flags: bool) -> dict[str, Any]:
     dict[str, Any]
         A dictionary containing the case settings.
     """
-    if not any(flags.values()):  # no section requested -> read everything
+    if not any(flags.values()):  # all flags are False, read all sections
         flags = dict.fromkeys(READERS, True)
 
     texts = _read_texts(

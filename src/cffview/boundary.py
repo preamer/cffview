@@ -310,6 +310,10 @@ class ToDictMixin:
 
         if data.get('planar_conduction') == '#f':
             data.pop('shell_conduction', None)
+        else:
+            data.pop('d', None)
+            data.pop('q_dot', None)
+            data.pop('material', None)
 
     def _filter_methods(self) -> list[str]:
         """All ``_filter_*`` methods in class-definition order (base to subclass)."""

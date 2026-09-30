@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `shell-conduction` parsing for `--bd`.
+
 ### Changed
 
 - `--mat` and `--bd` now accept optional type filters: `--mat fluid solid` filters materials by type, `--bd vi wall po` filters boundaries by type (single-word types use the whole word, hyphenated types use their initials). An empty filter list keeps the previous behaviour.
